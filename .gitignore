@@ -1,0 +1,9 @@
+.vscode/
+target/
+dist/
+**/*.rs.bk
+Cargo.lock
+*.sh
+*.bat
+*.log
+*.bimp

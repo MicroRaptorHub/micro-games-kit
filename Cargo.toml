@@ -1,0 +1,29 @@
+[package]
+name = "micro-games-kit"
+version = "0.1.0"
+edition = "2021"
+authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
+description = "Micro Games Kit"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/PsichiX/micro-games-kit"
+repository = "https://github.com/PsichiX/micro-games-kit"
+documentation = "https://docs.rs/micro-games-kit"
+readme = "../../README.md"
+
+[dependencies]
+spitfire-core = "0.15"
+spitfire-glow = "0.15"
+spitfire-fontdue = "0.15"
+spitfire-draw = "0.15"
+spitfire-input = "0.15"
+spitfire-gui = "0.15"
+raui-core = "0.55"
+raui-immediate = "0.55"
+raui-immediate-widgets = "0.55"
+image = "0.24"
+fontdue = "0.7"
+vek = "0.16"
+glutin = "0.28"
+rand = "0.8"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
