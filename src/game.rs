@@ -172,6 +172,7 @@ impl GameInstance {
                     state_change: &mut self.state_change,
                 });
                 self.states.push(state);
+                self.timer = Instant::now();
             }
             GameStateChange::Push(mut state) => {
                 state.enter(GameContext {
@@ -182,6 +183,7 @@ impl GameInstance {
                     state_change: &mut self.state_change,
                 });
                 self.states.push(state);
+                self.timer = Instant::now();
             }
             GameStateChange::Pop => {
                 if let Some(mut state) = self.states.pop() {
@@ -193,6 +195,7 @@ impl GameInstance {
                         state_change: &mut self.state_change,
                     });
                 }
+                self.timer = Instant::now();
             }
         }
     }
