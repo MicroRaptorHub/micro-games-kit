@@ -2,7 +2,6 @@ pub mod third_party {
     pub use fontdue;
     pub use glutin;
     pub use image;
-    pub use rand;
     pub use raui_core;
     pub use raui_immediate;
     pub use raui_immediate_widgets;
