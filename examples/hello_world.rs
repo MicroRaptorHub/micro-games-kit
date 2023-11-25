@@ -65,7 +65,7 @@ impl GameState for Preloader {
             "ferris",
             "./resources/ferris.png",
             1,
-            false,
+            1,
         );
 
         load_font(context.draw, "roboto", "./resources/Roboto-Regular.ttf");

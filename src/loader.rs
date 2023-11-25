@@ -32,15 +32,15 @@ pub fn load_texture(
     name: impl Into<Cow<'static, str>>,
     path: impl AsRef<Path>,
     pages: u32,
-    pages_in_columns: bool,
+    pages_per_row: u32,
 ) {
     let path = path.as_ref();
     let mut image = image::open(path)
         .unwrap_or_else(|_| panic!("Failed to load texture: {:?}", path))
         .into_rgba8();
     image = if pages > 1 {
-        if pages_in_columns {
-            let width = image.width() / pages;
+        if pages_per_row > 1 {
+            let width = image.width() / pages_per_row;
             let height = image.height();
             let mut result = RgbaImage::new(width, height * pages);
             for index in 0..pages {
@@ -71,11 +71,11 @@ pub fn load_texture(
 pub fn load_textures<const N: usize>(
     draw: &mut DrawContext,
     graphics: &Graphics<Vertex>,
-    // [id, path, pages count]
-    items: [(&'static str, &str, u32, bool); N],
+    // [id, path, pages count, pages per row count]
+    items: [(&'static str, &str, u32, u32); N],
 ) {
-    for (name, path, pages, pages_in_columns) in items {
-        load_texture(draw, graphics, name, path, pages, pages_in_columns);
+    for (name, path, pages, pages_per_row) in items {
+        load_texture(draw, graphics, name, path, pages, pages_per_row);
     }
 }
 
