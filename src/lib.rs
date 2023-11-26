@@ -25,7 +25,7 @@ use config::Config;
 use game::GameInstance;
 use spitfire_draw::utils::Vertex;
 use spitfire_glow::app::App;
-use std::path::Path;
+use std::{error::Error, path::Path};
 
 pub struct GameLauncher {
     instance: GameInstance,
@@ -52,12 +52,14 @@ impl GameLauncher {
         self
     }
 
-    pub fn load_config(mut self, config: impl AsRef<Path>) -> Self {
-        self.config = Config::load(config).unwrap_or_default();
-        self
+    pub fn load_config(mut self, config: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
+        self.config = Config::load(config)?;
+        Ok(self)
     }
 
     pub fn run(self) {
+        #[cfg(debug_assertions)]
+        println!("* Game {:#?}", self.config);
         App::<Vertex>::new(self.config.to_app_config(self.title)).run(self.instance);
     }
 }

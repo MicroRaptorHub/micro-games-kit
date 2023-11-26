@@ -24,6 +24,7 @@ use micro_games_kit::{
     },
     GameLauncher,
 };
+use std::error::Error;
 
 const SPEED: f32 = 100.0;
 
@@ -164,9 +165,10 @@ impl GameState for State {
     }
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     GameLauncher::new(GameInstance::new(Preloader::default()))
         .title("Hello World!")
-        .load_config("./resources/Config.toml")
+        .load_config("./resources/Config.toml")?
         .run();
+    Ok(())
 }
