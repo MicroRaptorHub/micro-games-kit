@@ -1,6 +1,6 @@
 [package]
 name = "micro-games-kit"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Micro Games Kit"
@@ -9,6 +9,7 @@ homepage = "https://github.com/PsichiX/micro-games-kit"
 repository = "https://github.com/PsichiX/micro-games-kit"
 documentation = "https://docs.rs/micro-games-kit"
 readme = "README.md"
+exclude = ["resources/"]
 
 [dependencies]
 spitfire-core = "0.17"
