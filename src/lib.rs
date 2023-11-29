@@ -1,7 +1,12 @@
 pub mod third_party {
     pub use fontdue;
-    pub use glutin;
+    #[cfg(not(target_arch = "wasm32"))]
+    pub use glutin as windowing;
     pub use image;
+    #[cfg(target_arch = "wasm32")]
+    pub use instant::Instant;
+    pub use noise;
+    pub use rand;
     pub use raui_core;
     pub use raui_immediate;
     pub use raui_immediate_widgets;
@@ -12,14 +17,19 @@ pub mod third_party {
     pub use spitfire_glow;
     pub use spitfire_gui;
     pub use spitfire_input;
+    #[cfg(not(target_arch = "wasm32"))]
+    pub use std::time::Instant;
     pub use toml;
     pub use vek;
+    #[cfg(target_arch = "wasm32")]
+    pub use winit as windowing;
 }
 
 pub mod config;
 pub mod context;
 pub mod game;
 pub mod loader;
+pub mod pcg;
 
 use config::Config;
 use game::GameInstance;
@@ -52,14 +62,22 @@ impl GameLauncher {
         self
     }
 
-    pub fn load_config(mut self, config: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
-        self.config = Config::load(config)?;
+    pub fn load_config_from_file(
+        mut self,
+        config: impl AsRef<Path>,
+    ) -> Result<Self, Box<dyn Error>> {
+        self.config = Config::load_from_file(config)?;
+        Ok(self)
+    }
+
+    pub fn load_config_from_str(mut self, config: &str) -> Result<Self, Box<dyn Error>> {
+        self.config = Config::load_from_str(config)?;
         Ok(self)
     }
 
     pub fn run(self) {
         #[cfg(debug_assertions)]
-        println!("* Game {:#?}", self.config);
+        spitfire_glow::console_log!("* Game {:#?}", self.config);
         App::<Vertex>::new(self.config.to_app_config(self.title)).run(self.instance);
     }
 }

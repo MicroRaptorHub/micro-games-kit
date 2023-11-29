@@ -2,7 +2,33 @@ use fontdue::Font;
 use image::{GenericImage, GenericImageView, RgbaImage};
 use spitfire_draw::{context::DrawContext, utils::Vertex};
 use spitfire_glow::{graphics::Graphics, renderer::GlowTextureFormat};
-use std::{borrow::Cow, path::Path};
+use std::borrow::Cow;
+
+#[cfg(not(target_arch = "wasm32"))]
+#[macro_export]
+macro_rules! load_asset {
+    ($path:literal) => {
+        std::fs::read($path)
+            .unwrap_or_else(|_| panic!("Failed to load binary asset: {}", $path))
+            .as_slice()
+    };
+    (str $path:literal) => {
+        std::fs::read_to_string($path)
+            .unwrap_or_else(|_| panic!("Failed to load string asset: {}", $path))
+            .as_str()
+    };
+}
+
+#[cfg(target_arch = "wasm32")]
+#[macro_export]
+macro_rules! load_asset {
+    ($path:literal) => {
+        include_bytes!($path)
+    };
+    (str $path:literal) => {
+        include_str!($path)
+    };
+}
 
 pub fn load_shader(
     draw: &mut DrawContext,
@@ -30,13 +56,13 @@ pub fn load_texture(
     draw: &mut DrawContext,
     graphics: &Graphics<Vertex>,
     name: impl Into<Cow<'static, str>>,
-    path: impl AsRef<Path>,
+    bytes: &[u8],
     pages: u32,
     pages_per_row: u32,
 ) {
-    let path = path.as_ref();
-    let mut image = image::open(path)
-        .unwrap_or_else(|_| panic!("Failed to load texture: {:?}", path))
+    let name = name.into();
+    let mut image = image::load_from_memory(bytes)
+        .unwrap_or_else(|_| panic!("Failed to load texture: {:?}", name))
         .into_rgba8();
     image = if pages > 1 {
         if pages_per_row > 1 {
@@ -55,7 +81,7 @@ pub fn load_texture(
         image
     };
     draw.textures.insert(
-        name.into(),
+        name,
         graphics
             .texture(
                 image.width(),
@@ -71,31 +97,27 @@ pub fn load_texture(
 pub fn load_textures<const N: usize>(
     draw: &mut DrawContext,
     graphics: &Graphics<Vertex>,
-    // [id, path, pages count, pages per row count]
-    items: [(&'static str, &str, u32, u32); N],
+    // [id, bytes, pages count, pages per row count]
+    items: [(&'static str, &[u8], u32, u32); N],
 ) {
-    for (name, path, pages, pages_per_row) in items {
-        load_texture(draw, graphics, name, path, pages, pages_per_row);
+    for (name, bytes, pages, pages_per_row) in items {
+        load_texture(draw, graphics, name, bytes, pages, pages_per_row);
     }
 }
 
-pub fn load_font(
-    draw: &mut DrawContext,
-    name: impl Into<Cow<'static, str>>,
-    path: impl AsRef<Path>,
-) {
-    let path = path.as_ref();
-    let bytes = std::fs::read(path).unwrap_or_else(|_| panic!("Failed to load font: {:?}", path));
-    draw.fonts
-        .insert(name, Font::from_bytes(bytes, Default::default()).unwrap());
+pub fn load_font(draw: &mut DrawContext, name: impl Into<Cow<'static, str>>, bytes: &[u8]) {
+    let name = name.into();
+    let font = Font::from_bytes(bytes, Default::default())
+        .unwrap_or_else(|_| panic!("Failed to load font: {:?}", name));
+    draw.fonts.insert(name, font);
 }
 
 pub fn load_fonts<const N: usize>(
     draw: &mut DrawContext,
-    // [id, path]
-    items: [(&'static str, &str); N],
+    // [id, bytes]
+    items: [(&'static str, &[u8]); N],
 ) {
-    for (name, path) in items {
-        load_font(draw, name, path);
+    for (name, bytes) in items {
+        load_font(draw, name, bytes);
     }
 }

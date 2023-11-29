@@ -1,9 +1,10 @@
 use micro_games_kit::{
+    config::Config,
     context::GameContext,
     game::{GameInstance, GameState, GameStateChange},
+    load_asset,
     loader::{load_font, load_shader, load_texture},
     third_party::{
-        glutin::event::VirtualKeyCode,
         raui_core::layout::CoordsMappingScaling,
         raui_immediate_widgets::core::{
             text_box, Color, TextBoxFont, TextBoxHorizontalAlign, TextBoxProps,
@@ -21,6 +22,7 @@ use micro_games_kit::{
             CardinalInputCombinator, InputActionRef, InputConsume, InputMapping, VirtualAction,
         },
         vek::Vec2,
+        windowing::event::VirtualKeyCode,
     },
     GameLauncher,
 };
@@ -64,12 +66,16 @@ impl GameState for Preloader {
             context.draw,
             context.graphics,
             "ferris",
-            "./resources/ferris.png",
+            load_asset!("./resources/ferris.png"),
             1,
             1,
         );
 
-        load_font(context.draw, "roboto", "./resources/Roboto-Regular.ttf");
+        load_font(
+            context.draw,
+            "roboto",
+            load_asset!("./resources/Roboto-Regular.ttf"),
+        );
 
         *context.state_change = GameStateChange::Swap(Box::new(State::default()));
     }
@@ -168,7 +174,9 @@ impl GameState for State {
 fn main() -> Result<(), Box<dyn Error>> {
     GameLauncher::new(GameInstance::new(Preloader::default()))
         .title("Hello World!")
-        .load_config("./resources/Config.toml")?
+        .config(Config::load_from_str(
+            load_asset!(str "./resources/Config.toml"),
+        )?)
         .run();
     Ok(())
 }

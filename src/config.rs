@@ -44,10 +44,12 @@ impl Config {
         true
     }
 
-    pub fn load(path: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
-        Ok(toml::from_str(
-            &std::fs::read_to_string(path).unwrap_or_default(),
-        )?)
+    pub fn load_from_file(path: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
+        Self::load_from_str(&std::fs::read_to_string(path).unwrap_or_default())
+    }
+
+    pub fn load_from_str(content: &str) -> Result<Self, Box<dyn Error>> {
+        Ok(toml::from_str(content)?)
     }
 
     pub fn to_app_config(&self, name: impl ToString) -> AppConfig {

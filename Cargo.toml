@@ -1,6 +1,6 @@
 [package]
 name = "micro-games-kit"
-version = "0.5.1"
+version = "0.6.0"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Micro Games Kit"
@@ -12,18 +12,27 @@ readme = "README.md"
 exclude = ["resources/"]
 
 [dependencies]
-spitfire-core = "0.17"
-spitfire-glow = "0.17"
-spitfire-fontdue = "0.17"
-spitfire-draw = "0.17"
-spitfire-input = "0.17"
-spitfire-gui = "0.17"
+spitfire-core = "0.19"
+spitfire-glow = "0.19"
+spitfire-fontdue = "0.19"
+spitfire-draw = "0.19"
+spitfire-input = "0.19"
+spitfire-gui = "0.19"
 raui-core = "0.55"
 raui-immediate = "0.55"
 raui-immediate-widgets = "0.55"
 image = "0.24"
 fontdue = "0.7"
 vek = "0.16"
-glutin = "0.28"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
+noise = "0.8"
+rand = "0.8"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+winit = "0.26"
+instant = { version = "0.1", features = [ "wasm-bindgen" ] }
+getrandom = { version = "0.2", features = ["js"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+glutin = "0.28"

@@ -1,5 +1,8 @@
 use crate::context::GameContext;
+#[cfg(not(target_arch = "wasm32"))]
 use glutin::{event::Event, window::Window};
+#[cfg(target_arch = "wasm32")]
+use instant::Instant;
 use spitfire_draw::{
     context::DrawContext,
     utils::{ShaderRef, Vertex},
@@ -7,7 +10,10 @@ use spitfire_draw::{
 use spitfire_glow::{app::AppState, graphics::Graphics, renderer::GlowBlending};
 use spitfire_gui::context::GuiContext;
 use spitfire_input::InputContext;
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
+#[cfg(target_arch = "wasm32")]
+use winit::{event::Event, window::Window};
 
 #[derive(Default)]
 pub enum GameStateChange {
