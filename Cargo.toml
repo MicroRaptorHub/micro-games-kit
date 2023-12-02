@@ -1,6 +1,6 @@
 [package]
 name = "micro-games-kit"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Micro Games Kit"
@@ -12,12 +12,12 @@ readme = "README.md"
 exclude = ["resources/"]
 
 [dependencies]
-spitfire-core = "0.19"
-spitfire-glow = "0.19"
-spitfire-fontdue = "0.19"
-spitfire-draw = "0.19"
-spitfire-input = "0.19"
-spitfire-gui = "0.19"
+spitfire-core = "0.20"
+spitfire-glow = "0.20"
+spitfire-fontdue = "0.20"
+spitfire-draw = "0.20"
+spitfire-input = "0.20"
+spitfire-gui = "0.20"
 raui-core = "0.55"
 raui-immediate = "0.55"
 raui-immediate-widgets = "0.55"

@@ -1,18 +1,17 @@
-use std::ops::Range;
-
+use crate::pcg::Grid;
 use spitfire_draw::{
     context::DrawContext,
     tiles::{TileInstance, TileMap, TileSet, TilesEmitter},
     utils::{Drawable, Vertex},
 };
 use spitfire_glow::graphics::Graphics;
+use std::ops::Range;
 use vek::{Rect, Vec2};
-
-use crate::pcg::Grid;
 
 #[derive(Clone)]
 pub struct GridWorld {
     pub position: Vec2<f32>,
+    pub pivot: Vec2<f32>,
     pub tile_size: Vec2<f32>,
     pub tileset: TileSet,
     pub visible_layers: Range<usize>,
@@ -26,6 +25,7 @@ impl GridWorld {
         let size = terrain_layer.size();
         Self {
             position: Default::default(),
+            pivot: Default::default(),
             tile_size,
             tileset,
             visible_layers: 0..1,
@@ -37,6 +37,11 @@ impl GridWorld {
 
     pub fn with_position(mut self, value: Vec2<f32>) -> Self {
         self.position = value;
+        self
+    }
+
+    pub fn with_pivot(mut self, value: Vec2<f32>) -> Self {
+        self.pivot = value;
         self
     }
 
@@ -113,9 +118,10 @@ impl Drawable for GridWorld {
             w: (extent.w.ceil() as usize).clamp(0, size.x),
             h: (extent.h.ceil() as usize).clamp(0, size.y),
         };
+        let offset = Vec2::new(size.x as f32, size.y as f32) * self.tile_size * self.pivot;
 
         TilesEmitter::default()
-            .position(self.position)
+            .position(self.position - offset)
             .tile_size(self.tile_size)
             .emit(
                 &self.tileset,
