@@ -28,6 +28,7 @@ pub mod third_party {
 pub mod config;
 pub mod context;
 pub mod game;
+pub mod grid_world;
 pub mod loader;
 pub mod pcg;
 

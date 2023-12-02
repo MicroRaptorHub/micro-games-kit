@@ -2,20 +2,21 @@ use micro_games_kit::{
     config::Config,
     context::GameContext,
     game::{GameInstance, GameState},
+    grid_world::GridWorld,
     loader::load_shader,
     pcg::{Grid, NoiseGenerator, RemapGenerator},
     GameLauncher,
 };
 use noise::{Fbm, MultiFractal, SuperSimplex};
 use spitfire_draw::{
-    tiles::{TileMap, TileSet, TileSetItem, TilesEmitter},
+    tiles::{TileMap, TileSet, TileSetItem},
     utils::{Drawable, ShaderRef},
 };
 use spitfire_glow::graphics::{CameraScaling, Shader};
 use std::error::Error;
 use vek::Rgba;
 
-const SIZE: usize = 100;
+const SIZE: usize = 50;
 const WATER: usize = 0;
 const FOREST: usize = 1;
 const GRASS: usize = 2;
@@ -28,8 +29,7 @@ enum State {
     #[default]
     Uninitialized,
     Ready {
-        tileset: TileSet,
-        tilemap: TileMap,
+        world: GridWorld,
     },
 }
 
@@ -86,30 +86,30 @@ impl GameState for State {
             .collect();
 
         *self = Self::Ready {
-            tileset: TileSet::default()
-                .shader(ShaderRef::name("color"))
-                .mapping(WATER, TileSetItem::default().tint(Rgba::blue()))
-                .mapping(
-                    FOREST,
-                    TileSetItem::default().tint(Rgba::new_opaque(0.0, 0.5, 0.0)),
-                )
-                .mapping(GRASS, TileSetItem::default().tint(Rgba::green()))
-                .mapping(
-                    SAND,
-                    TileSetItem::default().tint(Rgba::new_opaque(1.0, 1.0, 0.5)),
-                )
-                .mapping(ROCK, TileSetItem::default().tint(Rgba::gray(0.5)))
-                .mapping(SNOW, TileSetItem::default().tint(Rgba::white())),
-            tilemap: TileMap::with_buffer(SIZE.into(), buffer).unwrap(),
+            world: GridWorld::new(
+                10.0.into(),
+                TileSet::default()
+                    .shader(ShaderRef::name("color"))
+                    .mapping(WATER, TileSetItem::default().tint(Rgba::blue()))
+                    .mapping(
+                        FOREST,
+                        TileSetItem::default().tint(Rgba::new_opaque(0.0, 0.5, 0.0)),
+                    )
+                    .mapping(GRASS, TileSetItem::default().tint(Rgba::green()))
+                    .mapping(
+                        SAND,
+                        TileSetItem::default().tint(Rgba::new_opaque(1.0, 1.0, 0.5)),
+                    )
+                    .mapping(ROCK, TileSetItem::default().tint(Rgba::gray(0.5)))
+                    .mapping(SNOW, TileSetItem::default().tint(Rgba::white())),
+                TileMap::with_buffer(SIZE.into(), buffer).unwrap(),
+            ),
         };
     }
 
     fn draw(&mut self, context: GameContext) {
-        if let Self::Ready { tileset, tilemap } = self {
-            TilesEmitter::default()
-                .tile_size(10.0.into())
-                .emit(&tileset, tilemap.emit())
-                .draw(context.draw, context.graphics);
+        if let Self::Ready { world } = self {
+            world.draw(context.draw, context.graphics);
         }
     }
 }
