@@ -24,27 +24,12 @@ const SAND: usize = 3;
 const ROCK: usize = 4;
 const SNOW: usize = 5;
 
-#[derive(Default)]
-enum State {
-    #[default]
-    Uninitialized,
-    Ready {
-        world: GridWorld,
-    },
+struct State {
+    world: GridWorld,
 }
 
-impl GameState for State {
-    fn enter(&mut self, context: GameContext) {
-        context.graphics.main_camera.scaling = CameraScaling::FitVertical(SIZE as f32 * 10.0);
-
-        load_shader(
-            context.draw,
-            context.graphics,
-            "color",
-            Shader::COLORED_VERTEX_2D,
-            Shader::PASS_FRAGMENT,
-        );
-
+impl Default for State {
+    fn default() -> Self {
         let mut height = Grid::<f64>::generate(
             SIZE.into(),
             NoiseGenerator::new(Fbm::<SuperSimplex>::default().set_frequency(0.025)),
@@ -85,7 +70,7 @@ impl GameState for State {
             })
             .collect();
 
-        *self = Self::Ready {
+        Self {
             world: GridWorld::new(
                 10.0.into(),
                 TileSet::default()
@@ -104,13 +89,25 @@ impl GameState for State {
                     .mapping(SNOW, TileSetItem::default().tint(Rgba::white())),
                 TileMap::with_buffer(SIZE.into(), buffer).unwrap(),
             ),
-        };
+        }
+    }
+}
+
+impl GameState for State {
+    fn enter(&mut self, context: GameContext) {
+        context.graphics.main_camera.scaling = CameraScaling::FitVertical(SIZE as f32 * 10.0);
+
+        load_shader(
+            context.draw,
+            context.graphics,
+            "color",
+            Shader::COLORED_VERTEX_2D,
+            Shader::PASS_FRAGMENT,
+        );
     }
 
     fn draw(&mut self, context: GameContext) {
-        if let Self::Ready { world } = self {
-            world.draw(context.draw, context.graphics);
-        }
+        self.world.draw(context.draw, context.graphics);
     }
 }
 
