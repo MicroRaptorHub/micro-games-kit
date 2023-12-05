@@ -2,6 +2,18 @@ use noise::NoiseFn;
 use std::ops::{Add, Div, Mul, Range, Sub};
 use vek::{Mat4, Vec2};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GridDirection {
+    North,
+    NorthEast,
+    East,
+    SouthEast,
+    South,
+    SouthWest,
+    West,
+    NorthWest,
+}
+
 #[derive(Clone)]
 pub struct Grid<T: Copy> {
     size: Vec2<usize>,
@@ -62,6 +74,14 @@ impl<T: Copy> Grid<T> {
         &mut self.buffer
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = (Vec2<usize>, usize, T)> + '_ {
+        self.buffer
+            .iter()
+            .copied()
+            .enumerate()
+            .map(|(index, value)| (self.location(index), index, value))
+    }
+
     pub fn index(&self, location: impl Into<Vec2<usize>>) -> usize {
         let location = location.into();
         (location.y % self.size.y) * self.size.x + (location.x % self.size.x)
@@ -72,6 +92,121 @@ impl<T: Copy> Grid<T> {
             x: index % self.size.x,
             y: (index / self.size.y) % self.size.y,
         }
+    }
+
+    pub fn location_offset(
+        &self,
+        mut location: Vec2<usize>,
+        direction: GridDirection,
+        distance: usize,
+    ) -> Option<Vec2<usize>> {
+        if distance == 0 {
+            return None;
+        }
+        match direction {
+            GridDirection::North => {
+                if let Some(y) = location.y.checked_sub(distance) {
+                    location.y = y;
+                } else {
+                    return None;
+                }
+            }
+            GridDirection::NorthEast => {
+                if location.x + distance < self.size.x {
+                    location.x += distance;
+                } else {
+                    return None;
+                }
+                if let Some(y) = location.y.checked_sub(distance) {
+                    location.y = y;
+                } else {
+                    return None;
+                }
+            }
+            GridDirection::East => {
+                if location.x + distance < self.size.x {
+                    location.x += distance;
+                } else {
+                    return None;
+                }
+            }
+            GridDirection::SouthEast => {
+                if location.x + distance < self.size.x {
+                    location.x += distance;
+                } else {
+                    return None;
+                }
+                if location.y + distance < self.size.y {
+                    location.y += distance;
+                } else {
+                    return None;
+                }
+            }
+            GridDirection::South => {
+                if location.y + distance < self.size.y {
+                    location.y += distance;
+                } else {
+                    return None;
+                }
+            }
+            GridDirection::SouthWest => {
+                if let Some(x) = location.x.checked_sub(distance) {
+                    location.x = x;
+                } else {
+                    return None;
+                }
+                if location.y + distance < self.size.y {
+                    location.y += distance;
+                } else {
+                    return None;
+                }
+            }
+            GridDirection::West => {
+                if let Some(x) = location.x.checked_sub(distance) {
+                    location.x = x;
+                } else {
+                    return None;
+                }
+            }
+            GridDirection::NorthWest => {
+                if let Some(x) = location.x.checked_sub(distance) {
+                    location.x = x;
+                } else {
+                    return None;
+                }
+                if let Some(y) = location.y.checked_sub(distance) {
+                    location.y = y;
+                } else {
+                    return None;
+                }
+            }
+        }
+        Some(location)
+    }
+
+    pub fn neighbors(
+        &self,
+        location: impl Into<Vec2<usize>>,
+        range: Range<usize>,
+    ) -> impl Iterator<Item = (GridDirection, Vec2<usize>, T)> + '_ {
+        let location = location.into();
+        range.flat_map(move |distance| {
+            [
+                GridDirection::North,
+                GridDirection::NorthEast,
+                GridDirection::East,
+                GridDirection::SouthEast,
+                GridDirection::South,
+                GridDirection::SouthWest,
+                GridDirection::West,
+                GridDirection::NorthWest,
+            ]
+            .into_iter()
+            .filter_map(move |direction| {
+                let location = self.location_offset(location, direction, distance)?;
+                Some((direction, location, self.get(location)?))
+            })
+        })
     }
 
     pub fn get(&self, location: impl Into<Vec2<usize>>) -> Option<T> {
@@ -101,7 +236,8 @@ impl<T: Copy> Grid<T> {
             for x in from.x..to.x {
                 let location = Vec2::new(x, y);
                 let index = self.index(location);
-                self.buffer[index] = generator.generate(location, self.size, self.buffer[index]);
+                self.buffer[index] =
+                    generator.generate(location, self.size, self.buffer[index], self);
             }
         }
     }
@@ -118,12 +254,18 @@ impl<T: Copy> Grid<T> {
     }
 }
 
-pub trait GridGenetator<T> {
-    fn generate(&mut self, location: Vec2<usize>, size: Vec2<usize>, current: T) -> T;
+pub trait GridGenetator<T: Copy> {
+    fn generate(
+        &mut self,
+        location: Vec2<usize>,
+        size: Vec2<usize>,
+        current: T,
+        grid: &Grid<T>,
+    ) -> T;
 }
 
-impl<T, F: FnMut(Vec2<usize>, Vec2<usize>, T) -> T> GridGenetator<T> for F {
-    fn generate(&mut self, location: Vec2<usize>, size: Vec2<usize>, current: T) -> T {
+impl<T: Copy, F: FnMut(Vec2<usize>, Vec2<usize>, T) -> T> GridGenetator<T> for F {
+    fn generate(&mut self, location: Vec2<usize>, size: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         self(location, size, current)
     }
 }
@@ -131,8 +273,36 @@ impl<T, F: FnMut(Vec2<usize>, Vec2<usize>, T) -> T> GridGenetator<T> for F {
 pub struct ConstGenerator<T: Copy>(pub T);
 
 impl<T: Copy> GridGenetator<T> for ConstGenerator<T> {
-    fn generate(&mut self, _: Vec2<usize>, _: Vec2<usize>, _: T) -> T {
+    fn generate(&mut self, _: Vec2<usize>, _: Vec2<usize>, _: T, _: &Grid<T>) -> T {
         self.0
+    }
+}
+
+pub struct OffsetLocationGenerator<'a, T: Copy> {
+    pub generator: &'a mut dyn GridGenetator<T>,
+    pub offsets: &'a Grid<Vec2<isize>>,
+}
+
+impl<'a, T: Copy> GridGenetator<T> for OffsetLocationGenerator<'a, T> {
+    fn generate(
+        &mut self,
+        mut location: Vec2<usize>,
+        size: Vec2<usize>,
+        current: T,
+        grid: &Grid<T>,
+    ) -> T {
+        let offset = self.offsets.get(location).unwrap_or_default();
+        if offset.x >= 0 {
+            location.x = (location.x + offset.x as usize) % size.x;
+        } else {
+            location.x = (location.x + size.x - offset.x.unsigned_abs() % size.x) % size.x;
+        }
+        if offset.y >= 0 {
+            location.y = (location.y + offset.y as usize) % size.y;
+        } else {
+            location.y = (location.y + size.y - offset.y.unsigned_abs() % size.y) % size.y;
+        }
+        self.generator.generate(location, size, current, grid)
     }
 }
 
@@ -156,7 +326,7 @@ impl<T: NoiseFn<f64, 2>> NoiseGenerator<T> {
 }
 
 impl<T: NoiseFn<f64, 2>> GridGenetator<f64> for NoiseGenerator<T> {
-    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, _: f64) -> f64 {
+    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, _: f64, _: &Grid<f64>) -> f64 {
         let point = self.transform.mul_point(Vec2 {
             x: location.x as f64,
             y: location.y as f64,
@@ -170,7 +340,7 @@ pub struct CopyGenerator<'a, T: Copy> {
 }
 
 impl<'a, T: Copy + Add<Output = T> + Default> GridGenetator<T> for CopyGenerator<'a, T> {
-    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, _: T) -> T {
+    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, _: T, _: &Grid<T>) -> T {
         self.other.get(location).unwrap_or_default()
     }
 }
@@ -180,7 +350,7 @@ pub struct AddGenerator<'a, T: Copy> {
 }
 
 impl<'a, T: Copy + Add<Output = T> + Default> GridGenetator<T> for AddGenerator<'a, T> {
-    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T) -> T {
+    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current + self.other.get(location).unwrap_or_default()
     }
 }
@@ -190,7 +360,7 @@ pub struct SubGenerator<'a, T: Copy> {
 }
 
 impl<'a, T: Copy + Sub<Output = T> + Default> GridGenetator<T> for SubGenerator<'a, T> {
-    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T) -> T {
+    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current - self.other.get(location).unwrap_or_default()
     }
 }
@@ -200,7 +370,7 @@ pub struct MulGenerator<'a, T: Copy> {
 }
 
 impl<'a, T: Copy + Mul<Output = T> + Default> GridGenetator<T> for MulGenerator<'a, T> {
-    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T) -> T {
+    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current * self.other.get(location).unwrap_or_default()
     }
 }
@@ -210,7 +380,7 @@ pub struct DivGenerator<'a, T: Copy> {
 }
 
 impl<'a, T: Copy + Div<Output = T> + Default> GridGenetator<T> for DivGenerator<'a, T> {
-    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T) -> T {
+    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current / self.other.get(location).unwrap_or_default()
     }
 }
@@ -220,7 +390,7 @@ pub struct MinGenerator<'a, T: Copy> {
 }
 
 impl<'a, T: Copy + Div<Output = T> + Ord + Default> GridGenetator<T> for MinGenerator<'a, T> {
-    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T) -> T {
+    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current.min(self.other.get(location).unwrap_or_default())
     }
 }
@@ -230,8 +400,19 @@ pub struct MaxGenerator<'a, T: Copy> {
 }
 
 impl<'a, T: Copy + Div<Output = T> + Ord + Default> GridGenetator<T> for MaxGenerator<'a, T> {
-    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T) -> T {
+    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current.max(self.other.get(location).unwrap_or_default())
+    }
+}
+
+pub struct ClampGenerator<T: Copy> {
+    pub min: T,
+    pub max: T,
+}
+
+impl<T: Copy + Ord + Default> GridGenetator<T> for ClampGenerator<T> {
+    fn generate(&mut self, _: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
+        current.clamp(self.min, self.max)
     }
 }
 
@@ -243,9 +424,51 @@ pub struct RemapGenerator<T: Copy> {
 impl<T: Copy + Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T>>
     GridGenetator<T> for RemapGenerator<T>
 {
-    fn generate(&mut self, _: Vec2<usize>, _: Vec2<usize>, current: T) -> T {
+    fn generate(&mut self, _: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         let factor = (current - self.from.start) / (self.from.end - self.from.start);
         (self.to.end - self.to.start) * factor + self.to.start
+    }
+}
+
+pub enum ThresholdGenerator<'a, T: Copy> {
+    Constant {
+        threshold: T,
+        value_upper: T,
+        value_lower: T,
+    },
+    Samples {
+        thresholds: &'a Grid<T>,
+        value_upper: T,
+        value_lower: T,
+    },
+}
+
+impl<'a, T: Copy + PartialOrd + Default> GridGenetator<T> for ThresholdGenerator<'a, T> {
+    fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
+        match self {
+            Self::Constant {
+                threshold,
+                value_upper,
+                value_lower,
+            } => {
+                if current > *threshold {
+                    *value_upper
+                } else {
+                    *value_lower
+                }
+            }
+            Self::Samples {
+                thresholds,
+                value_upper,
+                value_lower,
+            } => {
+                if current > thresholds.get(location).unwrap_or_default() {
+                    *value_upper
+                } else {
+                    *value_lower
+                }
+            }
+        }
     }
 }
 
@@ -328,7 +551,7 @@ impl<'a> Kernel33Generator<'a, f64> {
 impl<'a, T: Copy + Add<Output = T> + Mul<Output = T> + Default> GridGenetator<T>
     for Kernel33Generator<'a, T>
 {
-    fn generate(&mut self, location: Vec2<usize>, size: Vec2<usize>, _: T) -> T {
+    fn generate(&mut self, location: Vec2<usize>, size: Vec2<usize>, _: T, _: &Grid<T>) -> T {
         let region = [
             self.other
                 .get(location + Vec2::new(size.x - 1, size.y - 1))
@@ -367,10 +590,15 @@ impl<'a, T: Copy + Add<Output = T> + Mul<Output = T> + Default> GridGenetator<T>
 
 #[cfg(test)]
 mod tests {
-    use super::{Grid, NoiseGenerator, RemapGenerator, SubGenerator};
-    use image::RgbImage;
-    use noise::{Fbm, MultiFractal, SuperSimplex};
+    use super::{
+        Grid, GridDirection, GridGenetator, Kernel33Generator, NoiseGenerator,
+        OffsetLocationGenerator, RemapGenerator, SubGenerator, ThresholdGenerator,
+    };
+    use image::{GrayImage, RgbImage};
+    use noise::{Fbm, MultiFractal, ScalePoint, SuperSimplex, Worley};
     use vek::Vec2;
+
+    const SIZE: usize = 512;
 
     fn gradient_generator(location: Vec2<usize>, size: Vec2<usize>, _: f64) -> f64 {
         let center = size / 2;
@@ -388,10 +616,62 @@ mod tests {
         result * result
     }
 
+    struct OffsetsGenerator<'a> {
+        pub source: &'a Grid<f64>,
+        pub scale: f64,
+    }
+
+    impl<'a> GridGenetator<Vec2<isize>> for OffsetsGenerator<'a> {
+        fn generate(
+            &mut self,
+            location: Vec2<usize>,
+            _: Vec2<usize>,
+            _: Vec2<isize>,
+            _: &Grid<Vec2<isize>>,
+        ) -> Vec2<isize> {
+            let left = self
+                .source
+                .get(
+                    self.source
+                        .location_offset(location, GridDirection::West, 1)
+                        .unwrap_or(location),
+                )
+                .unwrap_or_default();
+            let right = self
+                .source
+                .get(
+                    self.source
+                        .location_offset(location, GridDirection::East, 1)
+                        .unwrap_or(location),
+                )
+                .unwrap_or_default();
+            let top = self
+                .source
+                .get(
+                    self.source
+                        .location_offset(location, GridDirection::North, 1)
+                        .unwrap_or(location),
+                )
+                .unwrap_or_default();
+            let bottom = self
+                .source
+                .get(
+                    self.source
+                        .location_offset(location, GridDirection::South, 1)
+                        .unwrap_or(location),
+                )
+                .unwrap_or_default();
+            Vec2 {
+                x: ((right - left) * self.scale) as isize,
+                y: ((bottom - top) * self.scale) as isize,
+            }
+        }
+    }
+
     #[test]
-    fn test_pcg() {
+    fn test_pcg_island() {
         let mut grid = Grid::<f64>::generate(
-            512.into(),
+            SIZE.into(),
             NoiseGenerator::new(
                 Fbm::<SuperSimplex>::default()
                     .set_octaves(9)
@@ -424,5 +704,63 @@ mod tests {
             .collect();
         let image = RgbImage::from_vec(size.x as _, size.y as _, buffer).unwrap();
         image.save("./resources/island.png").unwrap();
+    }
+
+    #[test]
+    fn test_pcg_caves() {
+        let offsets = Grid::<f64>::generate(
+            SIZE.into(),
+            NoiseGenerator::new(ScalePoint::new(SuperSimplex::default()).set_scale(0.04)),
+        );
+        let offsets = Grid::<Vec2<isize>>::generate(
+            offsets.size(),
+            OffsetsGenerator {
+                source: &offsets,
+                scale: 20.0,
+            },
+        );
+
+        let mut thresholds = Grid::<f64>::generate(
+            SIZE.into(),
+            NoiseGenerator::new(ScalePoint::new(SuperSimplex::default()).set_scale(0.02)),
+        );
+        thresholds.apply_all(RemapGenerator {
+            from: -1.0..1.0,
+            to: 0.0..0.2,
+        });
+
+        let mut grid = Grid::<f64>::generate(
+            SIZE.into(),
+            OffsetLocationGenerator {
+                generator: &mut NoiseGenerator::new(Worley::default().set_frequency(0.01)),
+                offsets: &offsets,
+            },
+        );
+        grid.apply_all(RemapGenerator {
+            from: -1.0..1.0,
+            to: 0.0..1.0,
+        });
+        grid.apply_all(Kernel33Generator::edge_detection(&grid.clone()));
+        grid.apply_all(ThresholdGenerator::Constant {
+            threshold: 1.0e-4,
+            value_upper: 1.0,
+            value_lower: 0.0,
+        });
+        for _ in 0..7 {
+            grid.apply_all(Kernel33Generator::gaussian_blur(&grid.clone()));
+        }
+        grid.apply_all(ThresholdGenerator::Samples {
+            thresholds: &thresholds,
+            value_upper: 1.0,
+            value_lower: 0.0,
+        });
+
+        let (size, buffer) = grid.into_inner();
+        let buffer = buffer
+            .into_iter()
+            .map(|value| (value * 255.0) as u8)
+            .collect();
+        let image = GrayImage::from_vec(size.x as _, size.y as _, buffer).unwrap();
+        image.save("./resources/caves.png").unwrap();
     }
 }
