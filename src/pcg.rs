@@ -58,6 +58,43 @@ impl<T: Copy> Grid<T> {
         result
     }
 
+    pub fn apply(
+        &mut self,
+        from: impl Into<Vec2<usize>>,
+        to: impl Into<Vec2<usize>>,
+        mut generator: impl GridGenetator<T>,
+    ) {
+        if self.buffer.is_empty() {
+            return;
+        }
+        let from = from.into();
+        let to = to.into();
+        for y in from.y..to.y {
+            for x in from.x..to.x {
+                let location = Vec2::new(x, y);
+                let index = self.index(location);
+                self.buffer[index] =
+                    generator.generate(location, self.size, self.buffer[index], self);
+            }
+        }
+    }
+
+    pub fn apply_all(&mut self, generator: impl GridGenetator<T>) {
+        self.apply(0, self.size, generator);
+    }
+
+    pub fn map<U: Copy>(&self, mut f: impl FnMut(Vec2<usize>, Vec2<usize>, T) -> U) -> Grid<U> {
+        Grid {
+            size: self.size,
+            buffer: self
+                .buffer
+                .iter()
+                .enumerate()
+                .map(|(index, value)| f(self.location(index), self.size, *value))
+                .collect(),
+        }
+    }
+
     pub fn into_inner(self) -> (Vec2<usize>, Vec<T>) {
         (self.size, self.buffer)
     }
@@ -218,38 +255,6 @@ impl<T: Copy> Grid<T> {
         let index = self.index(location);
         if let Some(item) = self.buffer.get_mut(index) {
             *item = value;
-        }
-    }
-
-    pub fn apply(
-        &mut self,
-        from: impl Into<Vec2<usize>>,
-        to: impl Into<Vec2<usize>>,
-        mut generator: impl GridGenetator<T>,
-    ) {
-        if self.buffer.is_empty() {
-            return;
-        }
-        let from = from.into();
-        let to = to.into();
-        for y in from.y..to.y {
-            for x in from.x..to.x {
-                let location = Vec2::new(x, y);
-                let index = self.index(location);
-                self.buffer[index] =
-                    generator.generate(location, self.size, self.buffer[index], self);
-            }
-        }
-    }
-
-    pub fn apply_all(&mut self, generator: impl GridGenetator<T>) {
-        self.apply(0, self.size, generator);
-    }
-
-    pub fn map<U: Copy>(&self, mut f: impl FnMut(T) -> U) -> Grid<U> {
-        Grid {
-            size: self.size,
-            buffer: self.buffer.iter().map(|value| f(*value)).collect(),
         }
     }
 }
@@ -600,6 +605,14 @@ mod tests {
 
     const SIZE: usize = 512;
 
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum Terrain {
+        Water,
+        Sand,
+        Grass,
+        Mountain,
+    }
+
     fn gradient_generator(location: Vec2<usize>, size: Vec2<usize>, _: f64) -> f64 {
         let center = size / 2;
         let x = if location.x >= center.x {
@@ -668,10 +681,9 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_pcg_island() {
+    fn generate_terrain(size: Vec2<usize>) -> Grid<Terrain> {
         let mut grid = Grid::<f64>::generate(
-            SIZE.into(),
+            size,
             NoiseGenerator::new(
                 Fbm::<SuperSimplex>::default()
                     .set_octaves(9)
@@ -684,32 +696,22 @@ mod tests {
         });
         let gradient = grid.fork_generate(gradient_generator);
         grid.apply_all(SubGenerator { other: &gradient });
-
-        let (size, buffer) = grid.into_inner();
-        let buffer = buffer
-            .into_iter()
-            .flat_map(|value| {
-                if value > 0.7 {
-                    [255, 255, 255]
-                } else if value > 0.5 {
-                    [128, 128, 128]
-                } else if value > 0.2 {
-                    [0, 128, 0]
-                } else if value > 0.15 {
-                    [192, 192, 128]
-                } else {
-                    [0, 0, 128]
-                }
-            })
-            .collect();
-        let image = RgbImage::from_vec(size.x as _, size.y as _, buffer).unwrap();
-        image.save("./resources/island.png").unwrap();
+        grid.map(|_, _, value| {
+            if value > 0.5 {
+                Terrain::Mountain
+            } else if value > 0.2 {
+                Terrain::Grass
+            } else if value > 0.15 {
+                Terrain::Sand
+            } else {
+                Terrain::Water
+            }
+        })
     }
 
-    #[test]
-    fn test_pcg_caves() {
+    fn generate_tunnels(size: Vec2<usize>) -> Grid<bool> {
         let offsets = Grid::<f64>::generate(
-            SIZE.into(),
+            size,
             NoiseGenerator::new(ScalePoint::new(SuperSimplex::default()).set_scale(0.04)),
         );
         let offsets = Grid::<Vec2<isize>>::generate(
@@ -719,20 +721,18 @@ mod tests {
                 scale: 20.0,
             },
         );
-
         let mut thresholds = Grid::<f64>::generate(
-            SIZE.into(),
+            size,
             NoiseGenerator::new(ScalePoint::new(SuperSimplex::default()).set_scale(0.02)),
         );
         thresholds.apply_all(RemapGenerator {
             from: -1.0..1.0,
-            to: 0.0..0.2,
+            to: 0.0..0.4,
         });
-
         let mut grid = Grid::<f64>::generate(
-            SIZE.into(),
+            size,
             OffsetLocationGenerator {
-                generator: &mut NoiseGenerator::new(Worley::default().set_frequency(0.01)),
+                generator: &mut NoiseGenerator::new(Worley::default().set_frequency(0.04)),
                 offsets: &offsets,
             },
         );
@@ -746,7 +746,7 @@ mod tests {
             value_upper: 1.0,
             value_lower: 0.0,
         });
-        for _ in 0..7 {
+        for _ in 0..1 {
             grid.apply_all(Kernel33Generator::gaussian_blur(&grid.clone()));
         }
         grid.apply_all(ThresholdGenerator::Samples {
@@ -754,11 +754,44 @@ mod tests {
             value_upper: 1.0,
             value_lower: 0.0,
         });
+        grid.map(|_, _, value| value >= 0.5)
+    }
 
-        let (size, buffer) = grid.into_inner();
+    #[test]
+    fn test_pcg_island() {
+        let terrain = generate_terrain(SIZE.into());
+        let tunnels = generate_tunnels(SIZE.into());
+
+        let (size, buffer) = terrain.into_inner();
         let buffer = buffer
             .into_iter()
-            .map(|value| (value * 255.0) as u8)
+            .enumerate()
+            .flat_map(|(index, value)| match value {
+                Terrain::Mountain => {
+                    let location = tunnels.location(index);
+                    if tunnels.get(location).unwrap() {
+                        [64, 64, 64]
+                    } else {
+                        [128, 128, 128]
+                    }
+                }
+                Terrain::Grass => [0, 128, 0],
+                Terrain::Sand => [192, 192, 128],
+                Terrain::Water => [0, 0, 128],
+            })
+            .collect();
+        let image = RgbImage::from_vec(size.x as _, size.y as _, buffer).unwrap();
+        image.save("./resources/island.png").unwrap();
+    }
+
+    #[test]
+    fn test_pcg_tunnels() {
+        let tunnels = generate_tunnels(SIZE.into());
+
+        let (size, buffer) = tunnels.into_inner();
+        let buffer = buffer
+            .into_iter()
+            .map(|value| if value { 255 } else { 0 })
             .collect();
         let image = GrayImage::from_vec(size.x as _, size.y as _, buffer).unwrap();
         image.save("./resources/caves.png").unwrap();
