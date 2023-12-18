@@ -113,10 +113,10 @@ impl Drawable for GridWorld {
         let offset = (rectangle.position() - self.position) / self.tile_size;
         let extent = rectangle.extent() / self.tile_size;
         let region = Rect {
-            x: (offset.x as usize).clamp(0, size.x),
-            y: (offset.y as usize).clamp(0, size.y),
-            w: (extent.w.ceil() as usize).clamp(0, size.x),
-            h: (extent.h.ceil() as usize).clamp(0, size.y),
+            x: offset.x as usize,
+            y: offset.y as usize,
+            w: extent.w.ceil() as usize + 1,
+            h: extent.h.ceil() as usize + 1,
         };
         let offset = Vec2::new(size.x as f32, size.y as f32) * self.tile_size * self.pivot;
 
@@ -128,7 +128,7 @@ impl Drawable for GridWorld {
                 self.visible_layers
                     .clone()
                     .filter_map(|index| self.map_layers.get(index))
-                    .flat_map(|layer| layer.emit_region(region))
+                    .flat_map(|layer| layer.emit_region(region, false))
                     .chain(
                         self.tile_instances
                             .iter()
