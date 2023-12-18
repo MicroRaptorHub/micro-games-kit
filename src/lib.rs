@@ -31,6 +31,7 @@ pub mod game;
 pub mod grid_world;
 pub mod loader;
 pub mod pcg;
+pub mod tag;
 
 use config::Config;
 use game::GameInstance;

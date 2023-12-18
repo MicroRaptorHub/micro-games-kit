@@ -1,6 +1,6 @@
 [package]
 name = "micro-games-kit"
-version = "0.12.1"
+version = "0.13.0"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Micro Games Kit"
@@ -31,7 +31,7 @@ rand = "0.8"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 winit = "0.26"
-instant = { version = "0.1", features = [ "wasm-bindgen" ] }
+instant = { version = "0.1", features = ["wasm-bindgen"] }
 getrandom = { version = "0.2", features = ["js"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
