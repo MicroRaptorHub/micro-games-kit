@@ -2,9 +2,9 @@ use micro_games_kit::{
     config::Config,
     context::GameContext,
     game::{GameInstance, GameState},
-    grid_world::GridWorld,
+    grid_world::{GridWorld, GridWorldLayer},
     loader::load_shader,
-    pcg::{Grid, NoiseGenerator, RemapGenerator},
+    pcg::{Grid, NoiseGenerator, RemapGenerator, SubGenerator},
     GameLauncher,
 };
 use noise::{Fbm, MultiFractal, SuperSimplex};
@@ -14,7 +14,7 @@ use spitfire_draw::{
 };
 use spitfire_glow::graphics::{CameraScaling, Shader};
 use std::error::Error;
-use vek::Rgba;
+use vek::{Rgba, Vec2};
 
 const SIZE: usize = 50;
 const WATER: usize = 0;
@@ -38,6 +38,27 @@ impl Default for State {
             from: -1.0..1.0,
             to: 0.0..1.0,
         });
+
+        let gradient = Grid::<f64>::generate(
+            SIZE.into(),
+            |location: Vec2<usize>, size: Vec2<usize>, _| {
+                let center = size / 2;
+                let x = if location.x >= center.x {
+                    location.x - center.x
+                } else {
+                    center.x - location.x
+                } as f64;
+                let y = if location.y >= center.y {
+                    location.y - center.y
+                } else {
+                    center.y - location.y
+                } as f64;
+                let result = (x / center.x as f64).max(y / center.y as f64);
+                result * result
+            },
+        );
+        height.apply_all(SubGenerator { other: &gradient });
+
         let mut biome = Grid::<f64>::generate(
             SIZE.into(),
             NoiseGenerator::new(Fbm::<SuperSimplex>::new(42).set_frequency(0.05)),
@@ -46,20 +67,21 @@ impl Default for State {
             from: -1.0..1.0,
             to: 0.0..1.0,
         });
+
         let buffer = height
             .into_inner()
             .1
             .into_iter()
             .zip(biome.into_inner().1)
             .map(|(height, biome)| {
-                if height > 0.9 {
+                if height > 0.75 {
                     SNOW
-                } else if height > 0.75 {
+                } else if height > 0.6 {
                     ROCK
-                } else if height > 0.4 {
-                    if biome > 0.9 {
+                } else if height > 0.1 {
+                    if biome > 0.8 {
                         SAND
-                    } else if biome > 0.6 {
+                    } else if biome > 0.5 {
                         GRASS
                     } else {
                         FOREST
@@ -87,7 +109,7 @@ impl Default for State {
                     )
                     .mapping(ROCK, TileSetItem::default().tint(Rgba::gray(0.5)))
                     .mapping(SNOW, TileSetItem::default().tint(Rgba::white())),
-                TileMap::with_buffer(SIZE.into(), buffer).unwrap(),
+                GridWorldLayer::new(TileMap::with_buffer(SIZE.into(), buffer).unwrap()),
             ),
         }
     }
@@ -113,7 +135,7 @@ impl GameState for State {
 
 fn main() -> Result<(), Box<dyn Error>> {
     GameLauncher::new(GameInstance::new(State::default()))
-        .title("Procedural Content Generator")
+        .title("Procedural Content Generator - Island")
         .config(Config::load_from_file("./resources/GameConfig.toml")?)
         .run();
     Ok(())
