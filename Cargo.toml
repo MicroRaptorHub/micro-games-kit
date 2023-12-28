@@ -12,12 +12,12 @@ readme = "README.md"
 exclude = ["resources/"]
 
 [dependencies]
-spitfire-core = "0.23"
-spitfire-glow = "0.23"
-spitfire-fontdue = "0.23"
-spitfire-draw = "0.23"
-spitfire-input = "0.23"
-spitfire-gui = "0.23"
+spitfire-core = "0.24"
+spitfire-glow = "0.24"
+spitfire-fontdue = "0.24"
+spitfire-draw = "0.24"
+spitfire-input = "0.24"
+spitfire-gui = "0.24"
 raui-core = "0.56"
 raui-immediate = "0.56"
 raui-immediate-widgets = "0.56"
