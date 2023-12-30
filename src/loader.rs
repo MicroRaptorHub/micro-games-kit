@@ -57,26 +57,50 @@ pub fn load_texture(
     graphics: &Graphics<Vertex>,
     name: impl Into<Cow<'static, str>>,
     bytes: &[u8],
-    pages: u32,
-    pages_per_row: u32,
+    cols: u32,
+    rows: u32,
 ) {
     let name = name.into();
-    let mut image = image::load_from_memory(bytes)
+    let image = image::load_from_memory(bytes)
         .unwrap_or_else(|_| panic!("Failed to load texture: {:?}", name))
         .into_rgba8();
-    image = if pages > 1 {
-        if pages_per_row > 1 {
-            let width = image.width() / pages_per_row;
-            let height = image.height();
-            let mut result = RgbaImage::new(width, height * pages);
-            for index in 0..pages {
-                let view = image.view(index * width, 0, width, height);
-                result.copy_from(&*view, 0, index * height).unwrap();
+    build_texture(draw, graphics, name, image, cols, rows)
+}
+
+pub fn load_textures<const N: usize>(
+    draw: &mut DrawContext,
+    graphics: &Graphics<Vertex>,
+    // [id, bytes, columns, rows]
+    items: [(&'static str, &[u8], u32, u32); N],
+) {
+    for (name, bytes, cols, rows) in items {
+        load_texture(draw, graphics, name, bytes, cols, rows);
+    }
+}
+
+pub fn build_texture(
+    draw: &mut DrawContext,
+    graphics: &Graphics<Vertex>,
+    name: impl Into<Cow<'static, str>>,
+    mut image: RgbaImage,
+    cols: u32,
+    rows: u32,
+) {
+    let name = name.into();
+    let pages = cols * rows;
+    image = if cols > 1 || rows > 1 {
+        let width = image.width() / cols;
+        let height = image.height() / rows;
+        let mut result = RgbaImage::new(width, height * pages);
+        for row in 0..rows {
+            for col in 0..cols {
+                let view = image.view(col * width, row * height, width, height);
+                result
+                    .copy_from(&*view, 0, (row * cols + col) * height)
+                    .unwrap();
             }
-            result
-        } else {
-            image
         }
+        result
     } else {
         image
     };
@@ -94,14 +118,14 @@ pub fn load_texture(
     );
 }
 
-pub fn load_textures<const N: usize>(
+pub fn build_textures<const N: usize>(
     draw: &mut DrawContext,
     graphics: &Graphics<Vertex>,
-    // [id, bytes, pages count, pages per row count]
-    items: [(&'static str, &[u8], u32, u32); N],
+    // [id, image, columns, rows]
+    items: [(&'static str, RgbaImage, u32, u32); N],
 ) {
-    for (name, bytes, pages, pages_per_row) in items {
-        load_texture(draw, graphics, name, bytes, pages, pages_per_row);
+    for (name, image, cols, rows) in items {
+        build_texture(draw, graphics, name, image, cols, rows);
     }
 }
 

@@ -255,10 +255,10 @@ impl Drawable for GridWorld {
                                     .get(&instance.id)
                                     .map(|item| {
                                         region.collides_with_rect(Rect {
-                                            x: instance.location.x,
-                                            y: instance.location.y,
-                                            w: item.size.x,
-                                            h: item.size.y,
+                                            x: instance.location.x - 1,
+                                            y: instance.location.y - 1,
+                                            w: item.size.x + 2,
+                                            h: item.size.y + 2,
                                         })
                                     })
                                     .unwrap_or_default()
