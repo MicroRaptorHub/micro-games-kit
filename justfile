@@ -24,14 +24,14 @@ checks:
     just test
 
 clean:
-  find . -name target -type d -exec rm -r {} +
-  just remove-lockfiles
+    find . -name target -type d -exec rm -r {} +
+    just remove-lockfiles
 
 remove-lockfiles:
-  find . -name Cargo.lock -type f -exec rm {} +
+    find . -name Cargo.lock -type f -exec rm {} +
 
 list-outdated:
-  cargo outdated -R -w
+    cargo outdated -R -w
 
 update:
     cargo update --aggressive
@@ -41,3 +41,6 @@ example NAME="hello_world":
 
 publish:
     cargo publish --no-verify
+
+package-templates:
+    powershell Compress-Archive -Force "./templates/fresh-start/*" ./target/fresh-start-template.zip

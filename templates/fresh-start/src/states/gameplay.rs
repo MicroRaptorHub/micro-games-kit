@@ -1,8 +1,6 @@
 use micro_games_kit::{
-    config::Config,
     context::GameContext,
-    game::{GameInstance, GameState, GameStateChange},
-    load_asset,
+    game::{GameState, GameStateChange},
     loader::{load_font, load_shader, load_texture},
     third_party::{
         raui_core::layout::CoordsMappingScaling,
@@ -24,16 +22,32 @@ use micro_games_kit::{
         vek::Vec2,
         windowing::event::VirtualKeyCode,
     },
-    GameLauncher,
 };
-use std::error::Error;
 
 const SPEED: f32 = 100.0;
 
-#[derive(Default)]
-struct Preloader;
+pub struct Gameplay {
+    pub ferris: Sprite,
+    pub movement: CardinalInputCombinator,
+    pub exit: InputActionRef,
+}
 
-impl GameState for Preloader {
+impl Default for Gameplay {
+    fn default() -> Self {
+        Self {
+            ferris: Sprite::single(SpriteTexture {
+                sampler: "u_image".into(),
+                texture: TextureRef::name("ferris"),
+                filtering: GlowTextureFiltering::Linear,
+            })
+            .pivot(0.5.into()),
+            movement: Default::default(),
+            exit: Default::default(),
+        }
+    }
+}
+
+impl GameState for Gameplay {
     fn enter(&mut self, context: GameContext) {
         context.graphics.color = [0.2, 0.2, 0.2];
         context.graphics.main_camera.screen_alignment = 0.5.into();
@@ -66,7 +80,7 @@ impl GameState for Preloader {
             context.draw,
             context.graphics,
             "ferris",
-            include_bytes!("../resources/ferris.png"),
+            include_bytes!("../../assets/ferris.png"),
             1,
             1,
         );
@@ -74,28 +88,8 @@ impl GameState for Preloader {
         load_font(
             context.draw,
             "roboto",
-            include_bytes!("../resources/Roboto-Regular.ttf"),
+            include_bytes!("../../assets/Roboto-Regular.ttf"),
         );
-
-        *context.state_change = GameStateChange::Swap(Box::new(State::default()));
-    }
-}
-
-#[derive(Default)]
-struct State {
-    ferris: Sprite,
-    movement: CardinalInputCombinator,
-    exit: InputActionRef,
-}
-
-impl GameState for State {
-    fn enter(&mut self, context: GameContext) {
-        self.ferris = Sprite::single(SpriteTexture {
-            sampler: "u_image".into(),
-            texture: TextureRef::name("ferris"),
-            filtering: GlowTextureFiltering::Linear,
-        })
-        .pivot(0.5.into());
 
         let move_left = InputActionRef::default();
         let move_right = InputActionRef::default();
@@ -169,12 +163,4 @@ impl GameState for State {
             ..Default::default()
         });
     }
-}
-
-fn main() -> Result<(), Box<dyn Error>> {
-    GameLauncher::new(GameInstance::new(Preloader::default()))
-        .title("Hello World!")
-        .config(Config::load_from_file("./resources/GameConfig.toml")?)
-        .run();
-    Ok(())
 }

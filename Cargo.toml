@@ -1,3 +1,6 @@
+[workspace]
+members = ["templates/*"]
+
 [package]
 name = "micro-games-kit"
 version = "0.17.0"
@@ -9,7 +12,7 @@ homepage = "https://github.com/PsichiX/micro-games-kit"
 repository = "https://github.com/PsichiX/micro-games-kit"
 documentation = "https://docs.rs/micro-games-kit"
 readme = "README.md"
-exclude = ["resources/"]
+exclude = ["resources/", "templates/"]
 
 [dependencies]
 spitfire-core = "0.26"
