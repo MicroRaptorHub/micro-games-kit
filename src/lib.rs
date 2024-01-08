@@ -1,4 +1,5 @@
 pub mod third_party {
+    pub use emergent;
     pub use fontdue;
     #[cfg(not(target_arch = "wasm32"))]
     pub use glutin as windowing;
@@ -20,6 +21,7 @@ pub mod third_party {
     #[cfg(not(target_arch = "wasm32"))]
     pub use std::time::Instant;
     pub use toml;
+    pub use typid;
     pub use vek;
     #[cfg(target_arch = "wasm32")]
     pub use winit as windowing;
