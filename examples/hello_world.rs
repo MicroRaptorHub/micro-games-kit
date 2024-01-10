@@ -2,7 +2,6 @@ use micro_games_kit::{
     config::Config,
     context::GameContext,
     game::{GameInstance, GameState, GameStateChange},
-    load_asset,
     loader::{load_font, load_shader, load_texture},
     third_party::{
         raui_core::layout::CoordsMappingScaling,
