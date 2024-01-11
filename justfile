@@ -44,3 +44,4 @@ publish:
 
 package-templates:
     powershell Compress-Archive -Force "./templates/fresh-start/*" ./target/fresh-start-template.zip
+    powershell Compress-Archive -Force "./templates/top-down/*" ./target/top-down-template.zip
