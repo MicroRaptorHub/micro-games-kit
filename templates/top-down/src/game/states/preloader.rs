@@ -7,7 +7,11 @@ use micro_games_kit::{
 };
 
 macro_rules! load_texture_series {
-    ($context:expr, $id:literal, [$($index:literal),+]) => {
+    (
+        $context:expr,
+        $id:literal,
+        [$($index:literal),+]
+    ) => {
         $(
             load_texture(
                 $context.draw,
@@ -69,22 +73,26 @@ impl Preloader {
     }
 
     fn load_textures(context: &mut GameContext) {
-        // character
-        load_texture_series!(context, "idle", [1]);
-        load_texture_series!(context, "axe", [1, 2, 3, 4, 5, 6, 7, 8]);
-        load_texture_series!(context, "bow", [1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        load_texture_series!(context, "damage", [1, 2, 3, 4, 5, 6]);
+        // player character
+        load_texture_series!(context, "player/idle", [1]);
         load_texture_series!(
             context,
-            "run",
+            "player/run",
             [
                 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
                 24
             ]
         );
-        load_texture_series!(context, "sword", [1, 2, 3, 4, 5, 6, 7]);
+        load_texture_series!(context, "player/axe", [1, 2, 3, 4, 5, 6, 7, 8]);
+        load_texture_series!(context, "player/bow", [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        load_texture_series!(context, "player/sword", [1, 2, 3, 4, 5, 6, 7]);
+
+        // enemy character
+        load_texture_series!(context, "enemy/idle", [1, 2, 3, 4, 5]);
+        load_texture_series!(context, "enemy/run", [1, 2, 3, 4, 5, 6, 7, 8]);
+        load_texture_series!(context, "enemy/attack", [1, 2, 3, 4, 5, 6, 7, 8]);
 
         // enviro
-        load_texture_series!(context, "tree", [1, 2, 3, 4, 5, 6]);
+        load_texture_series!(context, "enviro/tree", [1, 2, 3, 4, 5, 6]);
     }
 }

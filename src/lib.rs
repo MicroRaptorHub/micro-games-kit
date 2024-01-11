@@ -27,9 +27,12 @@ pub mod third_party {
     pub use winit as windowing;
 }
 
+pub mod animation;
+pub mod character;
 pub mod config;
 pub mod context;
 pub mod game;
+pub mod game_object;
 pub mod grid_world;
 pub mod loader;
 pub mod pcg;

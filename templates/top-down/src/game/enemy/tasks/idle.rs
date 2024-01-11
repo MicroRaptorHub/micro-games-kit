@@ -1,4 +1,4 @@
-use crate::game::player::PlayerState;
+use crate::game::enemy::EnemyState;
 use micro_games_kit::{
     animation::{FrameAnimation, NamedAnimation},
     character::CharacterMemory,
@@ -6,35 +6,31 @@ use micro_games_kit::{
 };
 
 #[derive(Debug, Clone)]
-pub struct PlayerAttackAxeTask {
+pub struct EnemyIdleTask {
     animation: NamedAnimation,
 }
 
-impl Default for PlayerAttackAxeTask {
+impl Default for EnemyIdleTask {
     fn default() -> Self {
         Self {
             animation: NamedAnimation {
-                animation: FrameAnimation::new(1..9),
-                id: "player/axe".to_owned(),
+                animation: FrameAnimation::new(1..6).fps(10.0).looping(),
+                id: "enemy/idle".to_owned(),
             },
         }
     }
 }
 
-impl Task<CharacterMemory<PlayerState>> for PlayerAttackAxeTask {
-    fn is_locked(&self, _: &CharacterMemory<PlayerState>) -> bool {
-        self.animation.animation.is_playing
-    }
-
-    fn on_enter(&mut self, _: &mut CharacterMemory<PlayerState>) {
+impl Task<CharacterMemory<EnemyState>> for EnemyIdleTask {
+    fn on_enter(&mut self, _: &mut CharacterMemory<EnemyState>) {
         self.animation.animation.play();
     }
 
-    fn on_exit(&mut self, _: &mut CharacterMemory<PlayerState>) {
+    fn on_exit(&mut self, _: &mut CharacterMemory<EnemyState>) {
         self.animation.animation.stop();
     }
 
-    fn on_update(&mut self, memory: &mut CharacterMemory<PlayerState>) {
+    fn on_update(&mut self, memory: &mut CharacterMemory<EnemyState>) {
         self.animation.animation.update(memory.delta_time);
 
         memory

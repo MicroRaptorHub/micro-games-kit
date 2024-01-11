@@ -1,23 +1,23 @@
-use std::ops::Range;
+use spitfire_draw::utils::TextureRef;
+use std::{collections::HashMap, ops::Range};
+use vek::Rect;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Animation {
+pub struct FrameAnimation {
     frames: Range<usize>,
     current: Option<usize>,
     accumulator: f32,
-    pub id: String,
     pub fps: f32,
     pub is_playing: bool,
     pub looping: bool,
 }
 
-impl Animation {
-    pub fn new(id: impl ToString, frames: Range<usize>) -> Self {
+impl FrameAnimation {
+    pub fn new(frames: Range<usize>) -> Self {
         Self {
             frames,
             current: None,
             accumulator: 0.0,
-            id: id.to_string(),
             fps: 30.0,
             is_playing: false,
             looping: false,
@@ -79,5 +79,30 @@ impl Animation {
 
     pub fn current_frame(&self) -> Option<usize> {
         self.current
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NamedAnimation {
+    pub animation: FrameAnimation,
+    pub id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct SpriteAnimationFrame {
+    pub texture: TextureRef,
+    pub region: Rect<f32, f32>,
+    pub page: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct SpriteAnimation {
+    pub animation: FrameAnimation,
+    pub frames: HashMap<usize, SpriteAnimationFrame>,
+}
+
+impl SpriteAnimation {
+    pub fn current_frame(&self) -> Option<&SpriteAnimationFrame> {
+        self.frames.get(&self.animation.current_frame()?)
     }
 }

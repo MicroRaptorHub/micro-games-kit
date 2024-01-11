@@ -1,6 +1,5 @@
 use super::{PlayerState, PlayerWeapon};
-use crate::game::character::CharacterMemory;
-use micro_games_kit::third_party::emergent::condition::Condition;
+use micro_games_kit::{character::CharacterMemory, third_party::emergent::condition::Condition};
 
 pub struct PlayerIsMovingCondition;
 

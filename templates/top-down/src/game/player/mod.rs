@@ -8,13 +8,11 @@ use self::{
         attack_sword::PlayerAttackSwordTask, idle::PlayerIdleTask, run::PlayerRunTask,
     },
 };
-use super::{
-    animation::Animation,
-    character::{Character, CharacterController},
-    game_object::GameObject,
-};
 use micro_games_kit::{
+    animation::NamedAnimation,
+    character::{Character, CharacterController},
     context::GameContext,
+    game_object::GameObject,
     third_party::{
         emergent::builders::behavior_tree::BehaviorTree,
         spitfire_draw::{
@@ -28,8 +26,8 @@ use micro_games_kit::{
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum PlayerWeapon {
-    #[default]
     Bow,
+    #[default]
     Sword,
     Axe,
 }
@@ -83,10 +81,10 @@ impl Default for PlayerState {
 
 impl GameObject for PlayerState {
     fn update(&mut self, _: &mut GameContext, _: f32) {
-        if !self.input.weapon_prev.get().is_released() {
+        if self.input.weapon_prev.get().is_pressed() {
             self.weapon = self.weapon.prev();
         }
-        if !self.input.weapon_next.get().is_released() {
+        if self.input.weapon_next.get().is_pressed() {
             self.weapon = self.weapon.next();
         }
     }
@@ -152,8 +150,8 @@ impl PlayerState {
         Character::new(state, task, controller)
     }
 
-    pub fn apply_animation(&mut self, animation: &Animation) {
-        if let Some(frame) = animation.current_frame() {
+    pub fn apply_animation(&mut self, animation: &NamedAnimation) {
+        if let Some(frame) = animation.animation.current_frame() {
             self.sprite.textures[0].texture =
                 TextureRef::name(format!("{}/{}", animation.id, frame));
         }

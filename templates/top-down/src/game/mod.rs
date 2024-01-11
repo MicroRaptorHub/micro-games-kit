@@ -1,6 +1,4 @@
-pub mod animation;
-pub mod character;
-pub mod game_object;
+pub mod enemy;
 pub mod player;
 pub mod states;
 

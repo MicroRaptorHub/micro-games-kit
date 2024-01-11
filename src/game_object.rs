@@ -1,4 +1,4 @@
-use micro_games_kit::context::GameContext;
+use crate::context::GameContext;
 
 pub trait GameObject {
     #[allow(unused_variables)]

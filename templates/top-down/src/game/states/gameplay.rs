@@ -1,7 +1,9 @@
-use crate::game::{character::Character, game_object::GameObject, player::PlayerState};
+use crate::game::{enemy::EnemyState, player::PlayerState};
 use micro_games_kit::{
+    character::Character,
     context::GameContext,
     game::{GameState, GameStateChange},
+    game_object::GameObject,
     third_party::{
         raui_core::layout::CoordsMappingScaling,
         spitfire_glow::graphics::CameraScaling,
@@ -13,6 +15,7 @@ use micro_games_kit::{
 
 pub struct Gameplay {
     player: Character<PlayerState>,
+    enemies: Vec<Character<EnemyState>>,
     exit: InputActionRef,
     exit_handle: Option<ID<InputMapping>>,
 }
@@ -21,6 +24,7 @@ impl Default for Gameplay {
     fn default() -> Self {
         Self {
             player: PlayerState::new_character(),
+            enemies: Default::default(),
             exit: Default::default(),
             exit_handle: None,
         }
@@ -42,10 +46,17 @@ impl GameState for Gameplay {
         ));
 
         self.player.activate(&mut context);
+
+        self.enemies
+            .push(EnemyState::new_character([100.0, 0.0, 0.0]).activated(&mut context));
     }
 
     fn exit(&mut self, mut context: GameContext) {
         self.player.deactivate(&mut context);
+
+        for mut enemy in self.enemies.drain(..) {
+            enemy.deactivate(&mut context);
+        }
 
         if let Some(id) = self.exit_handle {
             context.input.remove_mapping(id);
@@ -59,8 +70,21 @@ impl GameState for Gameplay {
         }
 
         self.player.update(&mut context, delta_time);
+
+        for enemy in &mut self.enemies {
+            enemy.update(&mut context, delta_time);
+            enemy
+                .state
+                .write()
+                .unwrap()
+                .sense_player(&self.player.state.read().unwrap());
+        }
     }
     fn draw(&mut self, mut context: GameContext) {
+        for enemy in &mut self.enemies {
+            enemy.draw(&mut context);
+        }
+
         self.player.draw(&mut context);
     }
 }
