@@ -51,8 +51,8 @@ impl PlayerWeapon {
 
     pub fn attack(self) -> usize {
         match self {
-            Self::Sword => 20,
-            Self::Axe => 30,
+            Self::Sword => 25,
+            Self::Axe => 40,
         }
     }
 

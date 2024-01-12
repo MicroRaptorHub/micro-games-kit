@@ -1,6 +1,7 @@
 pub mod enemy;
 pub mod player;
 pub mod states;
+pub mod ui;
 pub mod utils;
 
 use self::states::preloader::Preloader;

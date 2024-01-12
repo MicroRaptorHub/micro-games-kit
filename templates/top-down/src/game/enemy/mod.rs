@@ -71,7 +71,7 @@ impl Default for EnemyState {
                 GlowUniformValue::F4([0.0, 0.0, 0.0, 0.0]),
             ),
             ai: Default::default(),
-            health: 50,
+            health: 100,
             attack: 20,
             attack_range: 60.0,
             blink_seconds: 0.0,

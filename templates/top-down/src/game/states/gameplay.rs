@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-
 use crate::game::{
     enemy::EnemyState,
     player::PlayerState,
+    ui::{health_bar::health_bar, world_to_screen_content_layout},
     utils::events::{Event, Events},
 };
 use micro_games_kit::{
@@ -12,12 +11,14 @@ use micro_games_kit::{
     game_object::GameObject,
     third_party::{
         raui_core::layout::CoordsMappingScaling,
+        raui_immediate_widgets::core::{containers::content_box, Rect},
         spitfire_glow::graphics::CameraScaling,
         spitfire_input::{InputActionRef, InputConsume, InputMapping, VirtualAction},
         typid::ID,
         windowing::event::VirtualKeyCode,
     },
 };
+use std::collections::HashMap;
 
 pub struct Gameplay {
     player: Character<PlayerState>,
@@ -117,5 +118,41 @@ impl GameState for Gameplay {
         }
 
         self.player.draw(&mut context);
+    }
+
+    fn draw_gui(&mut self, context: GameContext) {
+        content_box((), || {
+            {
+                let state = self.player.state.read().unwrap();
+                let layout = world_to_screen_content_layout(
+                    state.sprite.transform.position.xy(),
+                    Rect {
+                        left: -50.0,
+                        right: 50.0,
+                        top: -60.0,
+                        bottom: -45.0,
+                    },
+                    &context,
+                );
+
+                health_bar(layout, state.health);
+            }
+
+            for enemy in self.enemies.values() {
+                let state = enemy.state.read().unwrap();
+                let layout = world_to_screen_content_layout(
+                    state.sprite.transform.position.xy(),
+                    Rect {
+                        left: -50.0,
+                        right: 50.0,
+                        top: -60.0,
+                        bottom: -45.0,
+                    },
+                    &context,
+                );
+
+                health_bar(layout, state.health);
+            }
+        });
     }
 }
