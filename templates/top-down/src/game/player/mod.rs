@@ -4,8 +4,8 @@ pub mod tasks;
 use self::{
     conditions::{PlayerHasActiveWeapon, PlayerIsAttackingCondition, PlayerIsMovingCondition},
     tasks::{
-        attack_axe::PlayerAttackAxeTask, attack_bow::PlayerAttackBowTask,
-        attack_sword::PlayerAttackSwordTask, idle::PlayerIdleTask, run::PlayerRunTask,
+        attack_axe::PlayerAttackAxeTask, attack_sword::PlayerAttackSwordTask, idle::PlayerIdleTask,
+        run::PlayerRunTask,
     },
 };
 use micro_games_kit::{
@@ -19,14 +19,16 @@ use micro_games_kit::{
             sprite::{Sprite, SpriteTexture},
             utils::{Drawable, ShaderRef, TextureRef},
         },
+        spitfire_glow::renderer::GlowUniformValue,
         spitfire_input::{CardinalInputCombinator, InputActionRef, InputMapping, VirtualAction},
         windowing::event::VirtualKeyCode,
     },
 };
 
+use super::utils::events::{Event, Events, Instigator};
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum PlayerWeapon {
-    Bow,
     #[default]
     Sword,
     Axe,
@@ -35,17 +37,29 @@ pub enum PlayerWeapon {
 impl PlayerWeapon {
     pub fn prev(self) -> Self {
         match self {
-            Self::Bow => Self::Axe,
-            Self::Sword => Self::Bow,
+            Self::Sword => Self::Axe,
             Self::Axe => Self::Sword,
         }
     }
 
     pub fn next(self) -> Self {
         match self {
-            Self::Bow => Self::Sword,
             Self::Sword => Self::Axe,
-            Self::Axe => Self::Bow,
+            Self::Axe => Self::Sword,
+        }
+    }
+
+    pub fn attack(self) -> usize {
+        match self {
+            Self::Sword => 20,
+            Self::Axe => 30,
+        }
+    }
+
+    pub fn range(self) -> f32 {
+        match self {
+            Self::Sword => 30.0,
+            Self::Axe => 50.0,
         }
     }
 }
@@ -62,6 +76,8 @@ pub struct PlayerState {
     pub sprite: Sprite,
     pub input: PlayerInputState,
     pub weapon: PlayerWeapon,
+    pub health: usize,
+    pub blink_seconds: f32,
 }
 
 impl Default for PlayerState {
@@ -69,27 +85,45 @@ impl Default for PlayerState {
         Self {
             sprite: Sprite::single(SpriteTexture::new(
                 "u_image".into(),
-                TextureRef::name("idle"),
+                TextureRef::name("player/idle/1"),
             ))
-            .shader(ShaderRef::name("image"))
-            .pivot(0.5.into()),
+            .shader(ShaderRef::name("character"))
+            .pivot(0.5.into())
+            .uniform(
+                "u_fill_color".into(),
+                GlowUniformValue::F4([0.0, 0.0, 0.0, 0.0]),
+            ),
             input: Default::default(),
             weapon: Default::default(),
+            health: 100,
+            blink_seconds: 0.0,
         }
     }
 }
 
 impl GameObject for PlayerState {
-    fn update(&mut self, _: &mut GameContext, _: f32) {
+    fn update(&mut self, _: &mut GameContext, delta_time: f32) {
         if self.input.weapon_prev.get().is_pressed() {
             self.weapon = self.weapon.prev();
         }
         if self.input.weapon_next.get().is_pressed() {
             self.weapon = self.weapon.next();
         }
+        self.blink_seconds = (self.blink_seconds - delta_time).max(0.0);
     }
 
     fn draw(&mut self, context: &mut GameContext) {
+        if self.blink_seconds > 0.0 {
+            self.sprite.uniforms.insert(
+                "u_fill_color".into(),
+                GlowUniformValue::F4([1.0, 1.0, 1.0, 1.0]),
+            );
+        } else {
+            self.sprite.uniforms.insert(
+                "u_fill_color".into(),
+                GlowUniformValue::F4([1.0, 1.0, 1.0, 0.0]),
+            );
+        }
         self.sprite.draw(context.draw, context.graphics);
     }
 }
@@ -127,10 +161,6 @@ impl PlayerState {
             .node(
                 BehaviorTree::selector(PlayerIsAttackingCondition)
                     .node(BehaviorTree::state(
-                        PlayerHasActiveWeapon(PlayerWeapon::Bow),
-                        PlayerAttackBowTask::default(),
-                    ))
-                    .node(BehaviorTree::state(
                         PlayerHasActiveWeapon(PlayerWeapon::Sword),
                         PlayerAttackSwordTask::default(),
                     ))
@@ -154,6 +184,29 @@ impl PlayerState {
         if let Some(frame) = animation.animation.current_frame() {
             self.sprite.textures[0].texture =
                 TextureRef::name(format!("{}/{}", animation.id, frame));
+        }
+    }
+
+    pub fn execute_events(&mut self, events: &[Event]) {
+        for event in events {
+            if let Event::Attack {
+                position,
+                range,
+                value,
+                instigator,
+            } = event
+            {
+                if *instigator == Instigator::Enemy {
+                    let distance = position.distance(self.sprite.transform.position.xy());
+                    if distance <= *range {
+                        self.blink_seconds = 0.15;
+                        self.health = self.health.saturating_sub(*value);
+                        if self.health == 0 {
+                            Events::write(Event::KillPlayer);
+                        }
+                    }
+                }
+            }
         }
     }
 }

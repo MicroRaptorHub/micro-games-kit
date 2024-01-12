@@ -1,4 +1,7 @@
-use crate::game::enemy::EnemyState;
+use crate::game::{
+    enemy::EnemyState,
+    utils::events::{Event, Events, Instigator},
+};
 use micro_games_kit::{
     animation::{FrameAnimation, NamedAnimation},
     character::CharacterMemory,
@@ -26,8 +29,17 @@ impl Task<CharacterMemory<EnemyState>> for EnemyAttackTask {
         self.animation.animation.is_playing
     }
 
-    fn on_enter(&mut self, _: &mut CharacterMemory<EnemyState>) {
+    fn on_enter(&mut self, memory: &mut CharacterMemory<EnemyState>) {
+        let state = memory.state.read().unwrap();
+
         self.animation.animation.play();
+
+        Events::write(Event::Attack {
+            position: state.sprite.transform.position.xy(),
+            range: state.attack_range,
+            value: state.attack,
+            instigator: Instigator::Enemy,
+        });
     }
 
     fn on_exit(&mut self, _: &mut CharacterMemory<EnemyState>) {
@@ -45,7 +57,7 @@ impl Task<CharacterMemory<EnemyState>> for EnemyAttackTask {
 
         state.apply_animation(&self.animation);
 
-        if let Some(position) = state.ai.player_in_range_position {
+        if let Some(position) = state.ai.target_in_range_position {
             let dx = position.x - state.sprite.transform.position.x;
             if dx > 0.1 {
                 state.sprite.transform.scale.x = 1.0;

@@ -62,6 +62,13 @@ impl Preloader {
             Shader::TEXT_VERTEX,
             Shader::TEXT_FRAGMENT,
         );
+        load_shader(
+            context.draw,
+            context.graphics,
+            "character",
+            Shader::TEXTURED_VERTEX_2D,
+            include_str!("../../../assets/shaders/character.glsl"),
+        );
     }
 
     fn load_fonts(context: &mut GameContext) {
@@ -84,7 +91,6 @@ impl Preloader {
             ]
         );
         load_texture_series!(context, "player/axe", [1, 2, 3, 4, 5, 6, 7, 8]);
-        load_texture_series!(context, "player/bow", [1, 2, 3, 4, 5, 6, 7, 8, 9]);
         load_texture_series!(context, "player/sword", [1, 2, 3, 4, 5, 6, 7]);
 
         // enemy character

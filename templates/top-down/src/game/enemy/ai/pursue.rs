@@ -23,12 +23,12 @@ impl Task<CharacterMemory<EnemyState>> for EnemyAiPursueTask {
     fn on_update(&mut self, memory: &mut CharacterMemory<EnemyState>) {
         let mut state = memory.state.write().unwrap();
 
-        if let Some(mut position) = state.ai.player_in_range_position {
+        if let Some(mut position) = state.ai.target_in_range_position {
             let side = position.x - state.sprite.transform.position.x;
             if side >= 0.0 {
-                position.x -= state.ai.player_target_offset_x;
+                position.x -= state.ai.target_offset_x;
             } else {
-                position.x += state.ai.player_target_offset_x;
+                position.x += state.ai.target_offset_x;
             }
 
             state.ai.direction = position - state.sprite.transform.position.xy();

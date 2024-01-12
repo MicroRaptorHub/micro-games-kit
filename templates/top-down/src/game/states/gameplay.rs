@@ -1,4 +1,10 @@
-use crate::game::{enemy::EnemyState, player::PlayerState};
+use std::collections::HashMap;
+
+use crate::game::{
+    enemy::EnemyState,
+    player::PlayerState,
+    utils::events::{Event, Events},
+};
 use micro_games_kit::{
     character::Character,
     context::GameContext,
@@ -15,7 +21,7 @@ use micro_games_kit::{
 
 pub struct Gameplay {
     player: Character<PlayerState>,
-    enemies: Vec<Character<EnemyState>>,
+    enemies: HashMap<ID<EnemyState>, Character<EnemyState>>,
     exit: InputActionRef,
     exit_handle: Option<ID<InputMapping>>,
 }
@@ -47,14 +53,16 @@ impl GameState for Gameplay {
 
         self.player.activate(&mut context);
 
-        self.enemies
-            .push(EnemyState::new_character([100.0, 0.0, 0.0]).activated(&mut context));
+        self.enemies.insert(
+            ID::new(),
+            EnemyState::new_character([150.0, 0.0, 0.0]).activated(&mut context),
+        );
     }
 
     fn exit(&mut self, mut context: GameContext) {
         self.player.deactivate(&mut context);
 
-        for mut enemy in self.enemies.drain(..) {
+        for (_, mut enemy) in self.enemies.drain() {
             enemy.deactivate(&mut context);
         }
 
@@ -65,13 +73,15 @@ impl GameState for Gameplay {
     }
 
     fn update(&mut self, mut context: GameContext, delta_time: f32) {
+        Events::maintain();
+
         if self.exit.get().is_down() {
             *context.state_change = GameStateChange::Pop;
         }
 
         self.player.update(&mut context, delta_time);
 
-        for enemy in &mut self.enemies {
+        for enemy in self.enemies.values_mut() {
             enemy.update(&mut context, delta_time);
             enemy
                 .state
@@ -79,9 +89,30 @@ impl GameState for Gameplay {
                 .unwrap()
                 .sense_player(&self.player.state.read().unwrap());
         }
+
+        Events::read(|events| {
+            self.player.state.write().unwrap().execute_events(events);
+
+            for (id, enemy) in &mut self.enemies {
+                enemy.state.write().unwrap().execute_events(*id, events);
+            }
+
+            for event in events {
+                match event {
+                    Event::KillPlayer => {
+                        *context.state_change = GameStateChange::Pop;
+                    }
+                    Event::KillEnemy { id } => {
+                        self.enemies.remove(id);
+                    }
+                    _ => {}
+                }
+            }
+        });
     }
+
     fn draw(&mut self, mut context: GameContext) {
-        for enemy in &mut self.enemies {
+        for enemy in self.enemies.values_mut() {
             enemy.draw(&mut context);
         }
 

@@ -1,4 +1,7 @@
-use crate::game::player::PlayerState;
+use crate::game::{
+    player::PlayerState,
+    utils::events::{Event, Events, Instigator},
+};
 use micro_games_kit::{
     animation::{FrameAnimation, NamedAnimation},
     character::CharacterMemory,
@@ -26,8 +29,17 @@ impl Task<CharacterMemory<PlayerState>> for PlayerAttackSwordTask {
         self.animation.animation.is_playing
     }
 
-    fn on_enter(&mut self, _: &mut CharacterMemory<PlayerState>) {
+    fn on_enter(&mut self, memory: &mut CharacterMemory<PlayerState>) {
+        let state = memory.state.read().unwrap();
+
         self.animation.animation.play();
+
+        Events::write(Event::Attack {
+            position: state.sprite.transform.position.xy(),
+            range: state.weapon.range(),
+            value: state.weapon.attack(),
+            instigator: Instigator::Player,
+        });
     }
 
     fn on_exit(&mut self, _: &mut CharacterMemory<PlayerState>) {

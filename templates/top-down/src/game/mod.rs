@@ -1,6 +1,7 @@
 pub mod enemy;
 pub mod player;
 pub mod states;
+pub mod utils;
 
 use self::states::preloader::Preloader;
 use micro_games_kit::{config::Config, game::GameInstance, GameLauncher};

@@ -37,6 +37,6 @@ pub struct EnemyHasPlayerInRangeCondition;
 impl Condition<CharacterMemory<EnemyState>> for EnemyHasPlayerInRangeCondition {
     fn validate(&self, memory: &CharacterMemory<EnemyState>) -> bool {
         let state = memory.state.read().unwrap();
-        state.ai.player_in_range_position.is_some()
+        state.ai.target_in_range_position.is_some()
     }
 }
