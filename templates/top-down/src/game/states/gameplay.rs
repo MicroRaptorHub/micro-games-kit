@@ -1,5 +1,6 @@
 use crate::game::{
     enemy::EnemyState,
+    item::{Item, ItemKind},
     player::PlayerState,
     ui::{health_bar::health_bar, world_to_screen_content_layout},
     utils::events::{Event, Events},
@@ -10,6 +11,7 @@ use micro_games_kit::{
     game::{GameState, GameStateChange},
     game_object::GameObject,
     third_party::{
+        rand::{thread_rng, Rng},
         raui_core::layout::CoordsMappingScaling,
         raui_immediate_widgets::core::{containers::content_box, Rect},
         spitfire_glow::graphics::CameraScaling,
@@ -23,8 +25,10 @@ use std::collections::HashMap;
 pub struct Gameplay {
     player: Character<PlayerState>,
     enemies: HashMap<ID<EnemyState>, Character<EnemyState>>,
+    items: HashMap<ID<Item>, Item>,
     exit: InputActionRef,
     exit_handle: Option<ID<InputMapping>>,
+    map_radius: f32,
 }
 
 impl Default for Gameplay {
@@ -32,8 +36,10 @@ impl Default for Gameplay {
         Self {
             player: PlayerState::new_character(),
             enemies: Default::default(),
+            items: Default::default(),
             exit: Default::default(),
             exit_handle: None,
+            map_radius: 500.0,
         }
     }
 }
@@ -54,10 +60,26 @@ impl GameState for Gameplay {
 
         self.player.activate(&mut context);
 
-        self.enemies.insert(
-            ID::new(),
-            EnemyState::new_character([150.0, 0.0, 0.0]).activated(&mut context),
-        );
+        for _ in 0..4 {
+            let position = [
+                thread_rng().gen_range((-self.map_radius)..=self.map_radius),
+                thread_rng().gen_range((-self.map_radius)..=self.map_radius),
+                0.0,
+            ];
+            self.enemies.insert(
+                ID::new(),
+                EnemyState::new_character(position).activated(&mut context),
+            );
+        }
+
+        for _ in 0..15 {
+            let position = [
+                thread_rng().gen_range((-self.map_radius)..=self.map_radius),
+                thread_rng().gen_range((-self.map_radius)..=self.map_radius),
+            ];
+            self.items
+                .insert(ID::new(), Item::new(ItemKind::random(), position));
+        }
     }
 
     fn exit(&mut self, mut context: GameContext) {
@@ -91,6 +113,23 @@ impl GameState for Gameplay {
                 .sense_player(&self.player.state.read().unwrap());
         }
 
+        // naive solution. use space partitioning for bigger scale worlds.
+        for (id, item) in &self.items {
+            let mut state = self.player.state.write().unwrap();
+            if item.does_collide(state.sprite.transform.position.xy()) {
+                state.consume_item(item);
+                Events::write(Event::KillItem { id: *id });
+            }
+
+            for enemy in self.enemies.values_mut() {
+                let mut state = enemy.state.write().unwrap();
+                if item.does_collide(state.sprite.transform.position.xy()) {
+                    state.consume_item(item);
+                    Events::write(Event::KillItem { id: *id });
+                }
+            }
+        }
+
         Events::read(|events| {
             self.player.state.write().unwrap().execute_events(events);
 
@@ -106,6 +145,9 @@ impl GameState for Gameplay {
                     Event::KillEnemy { id } => {
                         self.enemies.remove(id);
                     }
+                    Event::KillItem { id } => {
+                        self.items.remove(id);
+                    }
                     _ => {}
                 }
             }
@@ -113,6 +155,10 @@ impl GameState for Gameplay {
     }
 
     fn draw(&mut self, mut context: GameContext) {
+        for item in self.items.values_mut() {
+            item.draw(&mut context);
+        }
+
         for enemy in self.enemies.values_mut() {
             enemy.draw(&mut context);
         }

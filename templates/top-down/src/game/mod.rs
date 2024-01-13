@@ -1,4 +1,5 @@
 pub mod enemy;
+pub mod item;
 pub mod player;
 pub mod states;
 pub mod ui;

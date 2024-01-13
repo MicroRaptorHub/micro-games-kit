@@ -37,7 +37,7 @@ impl Task<CharacterMemory<PlayerState>> for PlayerAttackAxeTask {
         Events::write(Event::Attack {
             position: state.sprite.transform.position.xy(),
             range: state.weapon.range(),
-            value: state.weapon.attack(),
+            value: state.total_attack(),
             instigator: Instigator::Player,
         });
     }

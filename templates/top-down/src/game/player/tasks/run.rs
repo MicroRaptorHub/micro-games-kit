@@ -35,7 +35,7 @@ impl Task<CharacterMemory<PlayerState>> for PlayerRunTask {
     fn on_update(&mut self, memory: &mut CharacterMemory<PlayerState>) {
         let mut state = memory.state.write().unwrap();
         let [x, y] = state.input.movement.get();
-        let direction = Vec3::new(x, y, 0.0).normalized();
+        let direction = Vec3::new(x, y, 0.0).try_normalized().unwrap_or_default();
 
         self.animation.animation.update(memory.delta_time);
         state.apply_animation(&self.animation);

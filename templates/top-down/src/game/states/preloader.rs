@@ -100,5 +100,31 @@ impl Preloader {
 
         // enviro
         load_texture_series!(context, "enviro/tree", [1, 2, 3, 4, 5, 6]);
+
+        // items
+        load_texture(
+            context.draw,
+            context.graphics,
+            "item/apple",
+            include_bytes!("../../../assets/images/item/apple.png"),
+            1,
+            1,
+        );
+        load_texture(
+            context.draw,
+            context.graphics,
+            "item/banana",
+            include_bytes!("../../../assets/images/item/banana.png"),
+            1,
+            1,
+        );
+        load_texture(
+            context.draw,
+            context.graphics,
+            "item/orange",
+            include_bytes!("../../../assets/images/item/orange.png"),
+            1,
+            1,
+        );
     }
 }

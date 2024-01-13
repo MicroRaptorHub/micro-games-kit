@@ -11,6 +11,7 @@ use self::{
     tasks::{attack::EnemyAttackTask, idle::EnemyIdleTask, run::EnemyRunTask},
 };
 use super::{
+    item::Item,
     player::PlayerState,
     utils::events::{Event, Events, Instigator},
 };
@@ -176,5 +177,10 @@ impl EnemyState {
                 }
             }
         }
+    }
+
+    pub fn consume_item(&mut self, item: &Item) {
+        self.health += item.health;
+        self.attack += item.attack;
     }
 }

@@ -8,6 +8,10 @@ use self::{
         run::PlayerRunTask,
     },
 };
+use super::{
+    item::Item,
+    utils::events::{Event, Events, Instigator},
+};
 use micro_games_kit::{
     animation::NamedAnimation,
     character::{Character, CharacterController},
@@ -21,11 +25,10 @@ use micro_games_kit::{
         },
         spitfire_glow::renderer::GlowUniformValue,
         spitfire_input::{CardinalInputCombinator, InputActionRef, InputMapping, VirtualAction},
+        vek::Vec2,
         windowing::event::VirtualKeyCode,
     },
 };
-
-use super::utils::events::{Event, Events, Instigator};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum PlayerWeapon {
@@ -77,6 +80,7 @@ pub struct PlayerState {
     pub input: PlayerInputState,
     pub weapon: PlayerWeapon,
     pub health: usize,
+    pub attack_buff: usize,
     pub blink_seconds: f32,
 }
 
@@ -96,20 +100,33 @@ impl Default for PlayerState {
             input: Default::default(),
             weapon: Default::default(),
             health: 100,
+            attack_buff: 0,
             blink_seconds: 0.0,
         }
     }
 }
 
 impl GameObject for PlayerState {
-    fn update(&mut self, _: &mut GameContext, delta_time: f32) {
+    fn update(&mut self, context: &mut GameContext, delta_time: f32) {
         if self.input.weapon_prev.get().is_pressed() {
             self.weapon = self.weapon.prev();
         }
         if self.input.weapon_next.get().is_pressed() {
             self.weapon = self.weapon.next();
         }
+
         self.blink_seconds = (self.blink_seconds - delta_time).max(0.0);
+
+        let movement = Vec2::<f32>::from(self.input.movement.get())
+            .try_normalized()
+            .unwrap_or_default();
+        let target = self.sprite.transform.position.xy() + movement * 150.0;
+        context.graphics.main_camera.transform.position = Vec2::lerp(
+            context.graphics.main_camera.transform.position.xy(),
+            target,
+            delta_time,
+        )
+        .into();
     }
 
     fn draw(&mut self, context: &mut GameContext) {
@@ -208,5 +225,14 @@ impl PlayerState {
                 }
             }
         }
+    }
+
+    pub fn total_attack(&self) -> usize {
+        self.weapon.attack() + self.attack_buff
+    }
+
+    pub fn consume_item(&mut self, item: &Item) {
+        self.health += item.health;
+        self.attack_buff += item.attack;
     }
 }

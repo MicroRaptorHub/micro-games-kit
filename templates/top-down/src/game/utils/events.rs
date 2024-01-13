@@ -1,4 +1,4 @@
-use crate::game::enemy::EnemyState;
+use crate::game::{enemy::EnemyState, item::Item};
 use micro_games_kit::third_party::{typid::ID, vek::Vec2};
 use std::cell::RefCell;
 
@@ -18,6 +18,9 @@ pub enum Event {
     KillPlayer,
     KillEnemy {
         id: ID<EnemyState>,
+    },
+    KillItem {
+        id: ID<Item>,
     },
     Attack {
         position: Vec2<f32>,
