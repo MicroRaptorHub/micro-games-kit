@@ -1,3 +1,6 @@
+pub mod health_bar;
+pub mod text_button;
+
 use super::utils::world_to_screen_anchor;
 use micro_games_kit::{
     context::GameContext,
@@ -6,8 +9,6 @@ use micro_games_kit::{
         vek::Vec2,
     },
 };
-
-pub mod health_bar;
 
 pub fn world_to_screen_content_layout(
     position: Vec2<f32>,

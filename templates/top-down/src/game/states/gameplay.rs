@@ -1,3 +1,4 @@
+use super::game_end::{GameEnd, GameEndReason};
 use crate::game::{
     enemy::EnemyState,
     item::{Item, ItemKind},
@@ -13,7 +14,9 @@ use micro_games_kit::{
     third_party::{
         rand::{thread_rng, Rng},
         raui_core::layout::CoordsMappingScaling,
-        raui_immediate_widgets::core::{containers::content_box, Rect},
+        raui_immediate_widgets::core::{
+            text_box, Color, ContentBoxItemLayout, Rect, TextBoxFont, TextBoxProps,
+        },
         spitfire_glow::graphics::CameraScaling,
         spitfire_input::{InputActionRef, InputConsume, InputMapping, VirtualAction},
         typid::ID,
@@ -140,7 +143,8 @@ impl GameState for Gameplay {
             for event in events {
                 match event {
                     Event::KillPlayer => {
-                        *context.state_change = GameStateChange::Pop;
+                        *context.state_change =
+                            GameStateChange::Swap(Box::new(GameEnd::new(GameEndReason::Lost)));
                     }
                     Event::KillEnemy { id } => {
                         self.enemies.remove(id);
@@ -167,38 +171,61 @@ impl GameState for Gameplay {
     }
 
     fn draw_gui(&mut self, context: GameContext) {
-        content_box((), || {
-            {
-                let state = self.player.state.read().unwrap();
-                let layout = world_to_screen_content_layout(
-                    state.sprite.transform.position.xy(),
-                    Rect {
-                        left: -50.0,
-                        right: 50.0,
-                        top: -60.0,
-                        bottom: -45.0,
-                    },
-                    &context,
-                );
+        {
+            let state = self.player.state.read().unwrap();
+            let layout = world_to_screen_content_layout(
+                state.sprite.transform.position.xy(),
+                Rect {
+                    left: -50.0,
+                    right: 50.0,
+                    top: -60.0,
+                    bottom: -45.0,
+                },
+                &context,
+            );
 
-                health_bar(layout, state.health);
-            }
+            health_bar(layout, state.health);
+        }
 
-            for enemy in self.enemies.values() {
-                let state = enemy.state.read().unwrap();
-                let layout = world_to_screen_content_layout(
-                    state.sprite.transform.position.xy(),
-                    Rect {
-                        left: -50.0,
-                        right: 50.0,
-                        top: -60.0,
-                        bottom: -45.0,
-                    },
-                    &context,
-                );
+        for enemy in self.enemies.values() {
+            let state = enemy.state.read().unwrap();
+            let layout = world_to_screen_content_layout(
+                state.sprite.transform.position.xy(),
+                Rect {
+                    left: -50.0,
+                    right: 50.0,
+                    top: -60.0,
+                    bottom: -45.0,
+                },
+                &context,
+            );
 
-                health_bar(layout, state.health);
-            }
-        });
+            health_bar(layout, state.health);
+        }
+
+        text_box((
+            ContentBoxItemLayout {
+                margin: 40.0.into(),
+                ..Default::default()
+            },
+            TextBoxProps {
+                text: format!(
+                    "Enemies: {}\nItems: {}",
+                    self.enemies.len(),
+                    self.items.len(),
+                ),
+                font: TextBoxFont {
+                    name: "roboto".to_owned(),
+                    size: 28.0,
+                },
+                color: Color {
+                    r: 1.0,
+                    g: 1.0,
+                    b: 1.0,
+                    a: 1.0,
+                },
+                ..Default::default()
+            },
+        ));
     }
 }

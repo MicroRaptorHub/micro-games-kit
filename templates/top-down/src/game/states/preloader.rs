@@ -3,7 +3,15 @@ use micro_games_kit::{
     context::GameContext,
     game::{GameState, GameStateChange},
     loader::{load_font, load_shader, load_texture},
-    third_party::spitfire_glow::graphics::Shader,
+    third_party::{
+        spitfire_glow::graphics::Shader,
+        spitfire_gui::interactions::GuiInteractionsInputs,
+        spitfire_input::{
+            ArrayInputCombinator, InputActionRef, InputAxisRef, InputConsume, InputMapping,
+            VirtualAction, VirtualAxis,
+        },
+        windowing::event::MouseButton,
+    },
 };
 
 macro_rules! load_texture_series {
@@ -34,6 +42,7 @@ impl GameState for Preloader {
         Self::load_shaders(&mut context);
         Self::load_fonts(&mut context);
         Self::load_textures(&mut context);
+        Self::setup_gui_inputs(&mut context);
 
         *context.state_change = GameStateChange::Swap(Box::<Gameplay>::default());
     }
@@ -125,6 +134,34 @@ impl Preloader {
             include_bytes!("../../../assets/images/item/orange.png"),
             1,
             1,
+        );
+    }
+
+    fn setup_gui_inputs(context: &mut GameContext) {
+        context
+            .gui
+            .interactions
+            .engine
+            .deselect_when_no_button_found = true;
+
+        let pointer_x = InputAxisRef::default();
+        let pointer_y = InputAxisRef::default();
+        let pointer_trigger = InputActionRef::default();
+
+        let mut inputs = GuiInteractionsInputs::default();
+        inputs.pointer_position = ArrayInputCombinator::new([pointer_x.clone(), pointer_y.clone()]);
+        inputs.pointer_trigger = pointer_trigger.clone();
+        context.gui.interactions.inputs = inputs;
+
+        context.input.push_mapping(
+            InputMapping::default()
+                .consume(InputConsume::Hit)
+                .axis(VirtualAxis::MousePositionX, pointer_x)
+                .axis(VirtualAxis::MousePositionY, pointer_y)
+                .action(
+                    VirtualAction::MouseButton(MouseButton::Left),
+                    pointer_trigger,
+                ),
         );
     }
 }
