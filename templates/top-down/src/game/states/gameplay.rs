@@ -56,7 +56,7 @@ impl Default for Gameplay {
             items: Default::default(),
             exit: Default::default(),
             exit_handle: None,
-            map_radius: 1600.0,
+            map_radius: 800.0,
         }
     }
 }
@@ -77,7 +77,7 @@ impl GameState for Gameplay {
 
         self.player.activate(&mut context);
 
-        for _ in 0..4 {
+        for _ in 0..6 {
             let position = [
                 thread_rng().gen_range((-self.map_radius)..=self.map_radius),
                 thread_rng().gen_range((-self.map_radius)..=self.map_radius),
@@ -89,7 +89,7 @@ impl GameState for Gameplay {
             );
         }
 
-        for _ in 0..15 {
+        for _ in 0..20 {
             let position = [
                 thread_rng().gen_range((-self.map_radius)..=self.map_radius),
                 thread_rng().gen_range((-self.map_radius)..=self.map_radius),
@@ -113,7 +113,7 @@ impl GameState for Gameplay {
     }
 
     fn update(&mut self, mut context: GameContext, delta_time: f32) {
-        Events::maintain();
+        Events::maintain(delta_time);
 
         if self.exit.get().is_down() {
             *context.state_change = GameStateChange::Swap(Box::new(MainMenu));
@@ -163,12 +163,15 @@ impl GameState for Gameplay {
                     Event::KillEnemy { id } => {
                         self.enemies.remove(id);
                         if self.enemies.is_empty() {
-                            *context.state_change =
-                                GameStateChange::Swap(Box::new(GameEnd::new(GameEndReason::Won)));
+                            Events::write_delayed(2.0, Event::WinGame);
                         }
                     }
                     Event::KillItem { id } => {
                         self.items.remove(id);
+                    }
+                    Event::WinGame => {
+                        *context.state_change =
+                            GameStateChange::Swap(Box::new(GameEnd::new(GameEndReason::Won)));
                     }
                     _ => {}
                 }
