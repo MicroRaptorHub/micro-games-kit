@@ -6,6 +6,7 @@ pub mod third_party {
     pub use image;
     #[cfg(target_arch = "wasm32")]
     pub use instant::Instant;
+    pub use kira;
     pub use noise;
     pub use rand;
     pub use raui_core;

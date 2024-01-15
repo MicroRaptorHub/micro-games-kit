@@ -1,3 +1,4 @@
+pub mod audio;
 pub mod events;
 
 use micro_games_kit::{context::GameContext, third_party::vek::Vec2};

@@ -1,6 +1,9 @@
 use crate::game::{
     player::PlayerState,
-    utils::events::{Event, Events, Instigator},
+    utils::{
+        audio::Audio,
+        events::{Event, Events, Instigator},
+    },
 };
 use micro_games_kit::{
     animation::{FrameAnimation, NamedAnimation},
@@ -17,7 +20,7 @@ impl Default for PlayerAttackSwordTask {
     fn default() -> Self {
         Self {
             animation: NamedAnimation {
-                animation: FrameAnimation::new(1..8),
+                animation: FrameAnimation::new(1..8).event(1, "hit"),
                 id: "player/sword".to_owned(),
             },
         }
@@ -47,7 +50,16 @@ impl Task<CharacterMemory<PlayerState>> for PlayerAttackSwordTask {
     }
 
     fn on_update(&mut self, memory: &mut CharacterMemory<PlayerState>) {
-        self.animation.animation.update(memory.delta_time);
+        let events = self.animation.animation.update(memory.delta_time);
+        {
+            let mut audio = Audio::write();
+            let mut audio = audio.write().unwrap();
+            for event in events {
+                if event == "hit" {
+                    audio.play("sword");
+                }
+            }
+        }
 
         memory
             .state
