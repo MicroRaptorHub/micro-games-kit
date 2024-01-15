@@ -20,7 +20,11 @@ use micro_games_kit::{
         raui_immediate_widgets::core::{
             text_box, Color, ContentBoxItemLayout, Rect, TextBoxFont, TextBoxProps,
         },
-        spitfire_glow::graphics::CameraScaling,
+        spitfire_draw::{
+            sprite::{Sprite, SpriteTexture},
+            utils::{Drawable, TextureRef},
+        },
+        spitfire_glow::{graphics::CameraScaling, renderer::GlowTextureFiltering},
         spitfire_input::{InputActionRef, InputConsume, InputMapping, VirtualAction},
         typid::ID,
         windowing::event::VirtualKeyCode,
@@ -29,6 +33,7 @@ use micro_games_kit::{
 use std::collections::HashMap;
 
 pub struct Gameplay {
+    map: Sprite,
     player: Character<PlayerState>,
     enemies: HashMap<ID<EnemyState>, Character<EnemyState>>,
     items: HashMap<ID<Item>, Item>,
@@ -40,12 +45,18 @@ pub struct Gameplay {
 impl Default for Gameplay {
     fn default() -> Self {
         Self {
+            map: Sprite::single(SpriteTexture {
+                sampler: "u_image".into(),
+                texture: TextureRef::name("map/level-0"),
+                filtering: GlowTextureFiltering::Linear,
+            })
+            .pivot(0.5.into()),
             player: PlayerState::new_character([0.0, 0.0, 0.0]),
             enemies: Default::default(),
             items: Default::default(),
             exit: Default::default(),
             exit_handle: None,
-            map_radius: 500.0,
+            map_radius: 1600.0,
         }
     }
 }
@@ -54,7 +65,7 @@ impl GameState for Gameplay {
     fn enter(&mut self, mut context: GameContext) {
         context.graphics.color = [0.0, 0.3, 0.0];
         context.graphics.main_camera.screen_alignment = 0.5.into();
-        context.graphics.main_camera.scaling = CameraScaling::FitVertical(300.0);
+        context.graphics.main_camera.scaling = CameraScaling::FitVertical(512.0);
         context.gui.coords_map_scaling = CoordsMappingScaling::FitVertical(1024.0);
 
         self.exit_handle = Some(context.input.push_mapping(
@@ -166,6 +177,8 @@ impl GameState for Gameplay {
     }
 
     fn draw(&mut self, mut context: GameContext) {
+        self.map.draw(context.draw, context.graphics);
+
         for item in self.items.values_mut() {
             item.draw(&mut context);
         }
@@ -217,7 +230,8 @@ impl GameState for Gameplay {
             },
             TextBoxProps {
                 text: format!(
-                    "Enemies: {}\nItems: {}",
+                    "Weapon: {:?}\nEnemies: {}\nItems: {}",
+                    self.player.state.read().unwrap().weapon,
                     self.enemies.len(),
                     self.items.len(),
                 ),

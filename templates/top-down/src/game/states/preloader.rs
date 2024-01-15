@@ -89,6 +89,16 @@ impl Preloader {
     }
 
     fn load_textures(context: &mut GameContext) {
+        // map
+        load_texture(
+            context.draw,
+            context.graphics,
+            "map/level-0",
+            include_bytes!("../../../assets/maps/world/simplified/Level_0/_composite.png"),
+            1,
+            1,
+        );
+
         // player character
         load_texture_series!(context, "player/idle", [1]);
         load_texture_series!(
@@ -106,9 +116,6 @@ impl Preloader {
         load_texture_series!(context, "enemy/idle", [1, 2, 3, 4, 5]);
         load_texture_series!(context, "enemy/run", [1, 2, 3, 4, 5, 6, 7, 8]);
         load_texture_series!(context, "enemy/attack", [1, 2, 3, 4, 5, 6, 7, 8]);
-
-        // enviro
-        load_texture_series!(context, "enviro/tree", [1, 2, 3, 4, 5, 6]);
 
         // items
         load_texture(

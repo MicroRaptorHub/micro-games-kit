@@ -1,3 +1,4 @@
+use super::gameplay::Gameplay;
 use crate::game::ui::text_button::text_button;
 use micro_games_kit::{
     context::GameContext,
@@ -7,8 +8,6 @@ use micro_games_kit::{
         TextBoxHorizontalAlign, TextBoxProps, TextBoxVerticalAlign,
     },
 };
-
-use super::gameplay::Gameplay;
 
 pub struct MainMenu;
 
