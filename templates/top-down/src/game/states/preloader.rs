@@ -1,4 +1,4 @@
-use super::gameplay::Gameplay;
+use super::main_menu::MainMenu;
 use micro_games_kit::{
     context::GameContext,
     game::{GameState, GameStateChange},
@@ -44,7 +44,7 @@ impl GameState for Preloader {
         Self::load_textures(&mut context);
         Self::setup_gui_inputs(&mut context);
 
-        *context.state_change = GameStateChange::Swap(Box::<Gameplay>::default());
+        *context.state_change = GameStateChange::Swap(Box::new(MainMenu));
     }
 }
 
@@ -148,10 +148,11 @@ impl Preloader {
         let pointer_y = InputAxisRef::default();
         let pointer_trigger = InputActionRef::default();
 
-        let mut inputs = GuiInteractionsInputs::default();
-        inputs.pointer_position = ArrayInputCombinator::new([pointer_x.clone(), pointer_y.clone()]);
-        inputs.pointer_trigger = pointer_trigger.clone();
-        context.gui.interactions.inputs = inputs;
+        context.gui.interactions.inputs = GuiInteractionsInputs {
+            pointer_position: ArrayInputCombinator::new([pointer_x.clone(), pointer_y.clone()]),
+            pointer_trigger: pointer_trigger.clone(),
+            ..Default::default()
+        };
 
         context.input.push_mapping(
             InputMapping::default()

@@ -9,7 +9,7 @@ use micro_games_kit::{
     },
 };
 
-use super::gameplay::Gameplay;
+use super::{gameplay::Gameplay, main_menu::MainMenu};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameEndReason {
@@ -37,6 +37,10 @@ impl GameEnd {
 }
 
 impl GameState for GameEnd {
+    fn enter(&mut self, context: GameContext) {
+        context.graphics.color = [0.2, 0.2, 0.2];
+    }
+
     fn draw_gui(&mut self, context: GameContext) {
         nav_vertical_box((), || {
             text_box(TextBoxProps {
@@ -80,9 +84,9 @@ impl GameState for GameEnd {
                         "Exit",
                     );
 
-                    if exit.trigger_start() {
-                        *context.state_change = GameStateChange::Pop;
-                    } else if restart.trigger_start() {
+                    if exit.trigger_stop() {
+                        *context.state_change = GameStateChange::Swap(Box::new(MainMenu));
+                    } else if restart.trigger_stop() {
                         *context.state_change = GameStateChange::Swap(Box::<Gameplay>::default());
                     }
                 },

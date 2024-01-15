@@ -25,7 +25,7 @@ use micro_games_kit::{
         },
         spitfire_glow::renderer::GlowUniformValue,
         spitfire_input::{CardinalInputCombinator, InputActionRef, InputMapping, VirtualAction},
-        vek::Vec2,
+        vek::{Vec2, Vec3},
         windowing::event::VirtualKeyCode,
     },
 };
@@ -107,6 +107,10 @@ impl Default for PlayerState {
 }
 
 impl GameObject for PlayerState {
+    fn activate(&mut self, context: &mut GameContext) {
+        context.graphics.main_camera.transform.position = self.sprite.transform.position;
+    }
+
     fn update(&mut self, context: &mut GameContext, delta_time: f32) {
         if self.input.weapon_prev.get().is_pressed() {
             self.weapon = self.weapon.prev();
@@ -146,7 +150,7 @@ impl GameObject for PlayerState {
 }
 
 impl PlayerState {
-    pub fn new_character() -> Character<PlayerState> {
+    pub fn new_character(position: impl Into<Vec3<f32>>) -> Character<PlayerState> {
         let left = InputActionRef::default();
         let right = InputActionRef::default();
         let up = InputActionRef::default();
@@ -155,6 +159,7 @@ impl PlayerState {
         let mut state = PlayerState::default();
         state.input.movement =
             CardinalInputCombinator::new(left.clone(), right.clone(), up.clone(), down.clone());
+        state.sprite.transform.position = position.into();
 
         let mapping = InputMapping::default()
             .action(VirtualAction::KeyButton(VirtualKeyCode::A), left)

@@ -1,4 +1,7 @@
-use super::game_end::{GameEnd, GameEndReason};
+use super::{
+    game_end::{GameEnd, GameEndReason},
+    main_menu::MainMenu,
+};
 use crate::game::{
     enemy::EnemyState,
     item::{Item, ItemKind},
@@ -37,7 +40,7 @@ pub struct Gameplay {
 impl Default for Gameplay {
     fn default() -> Self {
         Self {
-            player: PlayerState::new_character(),
+            player: PlayerState::new_character([0.0, 0.0, 0.0]),
             enemies: Default::default(),
             items: Default::default(),
             exit: Default::default(),
@@ -102,7 +105,7 @@ impl GameState for Gameplay {
         Events::maintain();
 
         if self.exit.get().is_down() {
-            *context.state_change = GameStateChange::Pop;
+            *context.state_change = GameStateChange::Swap(Box::new(MainMenu));
         }
 
         self.player.update(&mut context, delta_time);
@@ -148,6 +151,10 @@ impl GameState for Gameplay {
                     }
                     Event::KillEnemy { id } => {
                         self.enemies.remove(id);
+                        if self.enemies.is_empty() {
+                            *context.state_change =
+                                GameStateChange::Swap(Box::new(GameEnd::new(GameEndReason::Won)));
+                        }
                     }
                     Event::KillItem { id } => {
                         self.items.remove(id);
