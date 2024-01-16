@@ -10,6 +10,7 @@ use crate::game::{
     utils::{
         audio::Audio,
         events::{Event, Events},
+        space::{Space, SpaceObject, SpaceObjectId},
     },
 };
 use micro_games_kit::{
@@ -140,105 +141,19 @@ impl GameState for Gameplay {
     }
 
     fn update(&mut self, mut context: GameContext, delta_time: f32) {
-        Events::maintain(delta_time);
+        self.maintain(delta_time);
 
         if self.exit.get().is_down() {
             *context.state_change = GameStateChange::Swap(Box::new(MainMenu));
         }
 
-        self.player.update(&mut context, delta_time);
+        self.update_game_objects(&mut context, delta_time);
 
-        for enemy in self.enemies.values_mut() {
-            enemy.update(&mut context, delta_time);
-            enemy
-                .state
-                .write()
-                .unwrap()
-                .sense_player(&self.player.state.read().unwrap());
-        }
+        self.resolve_collisions();
 
-        // naive solution. use space partitioning for bigger scale worlds.
-        for (id, item) in &self.items {
-            let mut state = self.player.state.write().unwrap();
-            if item.does_collide(state.sprite.transform.position.xy()) {
-                state.consume_item(item);
-                Events::write(Event::KillItem { id: *id });
-                let _ = Audio::write().write().unwrap().play("collect");
-            }
+        self.execute_events(&mut context);
 
-            for enemy in self.enemies.values_mut() {
-                let mut state = enemy.state.write().unwrap();
-                if item.does_collide(state.sprite.transform.position.xy()) {
-                    state.consume_item(item);
-                    Events::write(Event::KillItem { id: *id });
-                }
-            }
-        }
-
-        Events::read(|events| {
-            self.player.state.write().unwrap().execute_events(events);
-
-            for (id, enemy) in &mut self.enemies {
-                enemy.state.write().unwrap().execute_events(*id, events);
-            }
-
-            for event in events {
-                match event {
-                    Event::KillPlayer => {
-                        *context.state_change =
-                            GameStateChange::Swap(Box::new(GameEnd::new(GameEndReason::Lost)));
-                    }
-                    Event::KillEnemy { id } => {
-                        self.enemies.remove(id);
-                        if self.enemies.is_empty() {
-                            Events::write_delayed(2.0, Event::WinGame);
-                        }
-                    }
-                    Event::KillItem { id } => {
-                        self.items.remove(id);
-                    }
-                    Event::WinGame => {
-                        *context.state_change =
-                            GameStateChange::Swap(Box::new(GameEnd::new(GameEndReason::Won)));
-                    }
-                    _ => {}
-                }
-            }
-        });
-
-        let player_position = self
-            .player
-            .state
-            .read()
-            .unwrap()
-            .sprite
-            .transform
-            .position
-            .xy();
-        let factor = self
-            .enemies
-            .values()
-            .map(|enemy| {
-                enemy
-                    .state
-                    .read()
-                    .unwrap()
-                    .sprite
-                    .transform
-                    .position
-                    .xy()
-                    .distance(player_position)
-            })
-            .min_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(INFINITY)
-            .min(300.0) as f64
-            / 300.0;
-        let _ = self
-            .music_forest
-            .set_volume(factor * 2.0, Default::default());
-        let _ = self
-            .music_battle
-            .set_volume((1.0 - factor) * 2.0, Default::default());
+        self.update_ambient_music();
     }
 
     fn draw(&mut self, mut context: GameContext) {
@@ -313,5 +228,150 @@ impl GameState for Gameplay {
                 ..Default::default()
             },
         ));
+    }
+}
+
+impl Gameplay {
+    fn maintain(&self, delta_time: f32) {
+        Events::maintain(delta_time);
+
+        Space::write().write().unwrap().maintain(
+            self.enemies
+                .iter()
+                .map(|(id, enemy)| SpaceObject {
+                    id: SpaceObjectId::Enemy(*id),
+                    position: enemy.state.read().unwrap().sprite.transform.position.xy(),
+                    collider_radius: 20.0,
+                })
+                .chain(self.items.iter().map(|(id, item)| SpaceObject {
+                    id: SpaceObjectId::Item(*id),
+                    position: item.sprite.transform.position.xy(),
+                    collider_radius: 10.0,
+                }))
+                .chain(std::iter::once(SpaceObject {
+                    id: SpaceObjectId::Player,
+                    position: self
+                        .player
+                        .state
+                        .read()
+                        .unwrap()
+                        .sprite
+                        .transform
+                        .position
+                        .xy(),
+                    collider_radius: 20.0,
+                }))
+                .collect(),
+        );
+    }
+
+    fn update_game_objects(&mut self, context: &mut GameContext, delta_time: f32) {
+        self.player.update(context, delta_time);
+
+        for enemy in self.enemies.values_mut() {
+            enemy.update(context, delta_time);
+            enemy
+                .state
+                .write()
+                .unwrap()
+                .sense_player(&self.player.state.read().unwrap());
+        }
+    }
+
+    fn execute_events(&mut self, context: &mut GameContext) {
+        Events::read(|events| {
+            self.player.state.write().unwrap().execute_events(events);
+
+            for (id, enemy) in &mut self.enemies {
+                enemy.state.write().unwrap().execute_events(*id, events);
+            }
+
+            for event in events {
+                match event {
+                    Event::KillPlayer => {
+                        *context.state_change =
+                            GameStateChange::Swap(Box::new(GameEnd::new(GameEndReason::Lost)));
+                    }
+                    Event::KillEnemy { id } => {
+                        self.enemies.remove(id);
+                        if self.enemies.is_empty() {
+                            Events::write_delayed(2.0, Event::WinGame);
+                        }
+                    }
+                    Event::KillItem { id } => {
+                        self.items.remove(id);
+                    }
+                    Event::WinGame => {
+                        *context.state_change =
+                            GameStateChange::Swap(Box::new(GameEnd::new(GameEndReason::Won)));
+                    }
+                    _ => {}
+                }
+            }
+        });
+    }
+
+    fn update_ambient_music(&mut self) {
+        let player_position = self
+            .player
+            .state
+            .read()
+            .unwrap()
+            .sprite
+            .transform
+            .position
+            .xy();
+        let factor = self
+            .enemies
+            .values()
+            .map(|enemy| {
+                enemy
+                    .state
+                    .read()
+                    .unwrap()
+                    .sprite
+                    .transform
+                    .position
+                    .xy()
+                    .distance(player_position)
+            })
+            .min_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(INFINITY)
+            .min(300.0) as f64
+            / 300.0;
+        let _ = self
+            .music_forest
+            .set_volume(factor * 2.0, Default::default());
+        let _ = self
+            .music_battle
+            .set_volume((1.0 - factor) * 2.0, Default::default());
+    }
+
+    fn resolve_collisions(&mut self) {
+        let space = Space::read();
+        let space = space.read().unwrap();
+
+        for object_item in space.iter() {
+            if let SpaceObjectId::Item(item_id) = object_item.id {
+                if let Some(item) = self.items.get(&item_id) {
+                    for object in space.collisions(object_item, true) {
+                        match object.id {
+                            SpaceObjectId::Player => {
+                                self.player.state.write().unwrap().consume_item(item);
+                                Events::write(Event::KillItem { id: item_id });
+                                let _ = Audio::write().write().unwrap().play("collect");
+                            }
+                            SpaceObjectId::Enemy(enemy_id) => {
+                                if let Some(enemy) = self.enemies.get_mut(&enemy_id) {
+                                    enemy.state.write().unwrap().consume_item(item);
+                                    Events::write(Event::KillItem { id: item_id });
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
     }
 }

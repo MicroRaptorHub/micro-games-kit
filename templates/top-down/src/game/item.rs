@@ -38,10 +38,6 @@ impl ItemKind {
         }
     }
 
-    pub fn radius(self) -> f32 {
-        20.0
-    }
-
     pub fn health(self) -> usize {
         match self {
             Self::Apple => 10,
@@ -61,7 +57,6 @@ impl ItemKind {
 
 pub struct Item {
     pub sprite: Sprite,
-    pub collision_radius: f32,
     pub health: usize,
     pub attack: usize,
 }
@@ -75,14 +70,9 @@ impl Item {
                 filtering: GlowTextureFiltering::Linear,
             })
             .position(position.into()),
-            collision_radius: kind.radius(),
             health: kind.health(),
             attack: kind.attack(),
         }
-    }
-
-    pub fn does_collide(&self, position: Vec2<f32>) -> bool {
-        self.sprite.transform.position.xy().distance(position) <= self.collision_radius
     }
 }
 
