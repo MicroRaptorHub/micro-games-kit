@@ -7,7 +7,10 @@ use crate::game::{
     item::{Item, ItemKind},
     player::PlayerState,
     ui::{health_bar::health_bar, world_to_screen_content_layout},
-    utils::events::{Event, Events},
+    utils::{
+        audio::Audio,
+        events::{Event, Events},
+    },
 };
 use micro_games_kit::{
     character::Character,
@@ -15,6 +18,7 @@ use micro_games_kit::{
     game::{GameState, GameStateChange},
     game_object::GameObject,
     third_party::{
+        kira::sound::static_sound::StaticSoundHandle,
         rand::{thread_rng, Rng},
         raui_core::layout::CoordsMappingScaling,
         raui_immediate_widgets::core::{
@@ -30,7 +34,7 @@ use micro_games_kit::{
         windowing::event::VirtualKeyCode,
     },
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, f32::INFINITY};
 
 pub struct Gameplay {
     map: Sprite,
@@ -40,10 +44,25 @@ pub struct Gameplay {
     exit: InputActionRef,
     exit_handle: Option<ID<InputMapping>>,
     map_radius: f32,
+    music_forest: StaticSoundHandle,
+    music_battle: StaticSoundHandle,
 }
 
 impl Default for Gameplay {
     fn default() -> Self {
+        let mut audio = Audio::write();
+        let mut audio = audio.write().unwrap();
+
+        let mut music_forest = audio.play("forest").unwrap();
+        let _ = music_forest.set_volume(0.0, Default::default());
+        let _ = music_forest.set_loop_region(..);
+        let _ = music_forest.pause(Default::default());
+
+        let mut music_battle = audio.play("battle").unwrap();
+        let _ = music_battle.set_volume(0.0, Default::default());
+        let _ = music_battle.set_loop_region(..);
+        let _ = music_battle.pause(Default::default());
+
         Self {
             map: Sprite::single(SpriteTexture {
                 sampler: "u_image".into(),
@@ -57,6 +76,8 @@ impl Default for Gameplay {
             exit: Default::default(),
             exit_handle: None,
             map_radius: 800.0,
+            music_forest,
+            music_battle,
         }
     }
 }
@@ -97,6 +118,9 @@ impl GameState for Gameplay {
             self.items
                 .insert(ID::new(), Item::new(ItemKind::random(), position));
         }
+
+        let _ = self.music_forest.resume(Default::default());
+        let _ = self.music_battle.resume(Default::default());
     }
 
     fn exit(&mut self, mut context: GameContext) {
@@ -110,6 +134,9 @@ impl GameState for Gameplay {
             context.input.remove_mapping(id);
             self.exit_handle = None;
         }
+
+        let _ = self.music_forest.stop(Default::default());
+        let _ = self.music_battle.stop(Default::default());
     }
 
     fn update(&mut self, mut context: GameContext, delta_time: f32) {
@@ -136,6 +163,7 @@ impl GameState for Gameplay {
             if item.does_collide(state.sprite.transform.position.xy()) {
                 state.consume_item(item);
                 Events::write(Event::KillItem { id: *id });
+                let _ = Audio::write().write().unwrap().play("collect");
             }
 
             for enemy in self.enemies.values_mut() {
@@ -177,6 +205,40 @@ impl GameState for Gameplay {
                 }
             }
         });
+
+        let player_position = self
+            .player
+            .state
+            .read()
+            .unwrap()
+            .sprite
+            .transform
+            .position
+            .xy();
+        let factor = self
+            .enemies
+            .values()
+            .map(|enemy| {
+                enemy
+                    .state
+                    .read()
+                    .unwrap()
+                    .sprite
+                    .transform
+                    .position
+                    .xy()
+                    .distance(player_position)
+            })
+            .min_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(INFINITY)
+            .min(300.0) as f64
+            / 300.0;
+        let _ = self
+            .music_forest
+            .set_volume(factor * 2.0, Default::default());
+        let _ = self
+            .music_battle
+            .set_volume((1.0 - factor) * 2.0, Default::default());
     }
 
     fn draw(&mut self, mut context: GameContext) {

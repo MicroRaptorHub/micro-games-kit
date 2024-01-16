@@ -43,7 +43,7 @@ impl GameState for Preloader {
         Self::load_shaders(&mut context);
         Self::load_fonts(&mut context);
         Self::load_textures(&mut context);
-        Self::load_sounds();
+        Self::load_sounds_and_music();
         Self::setup_gui_inputs(&mut context);
 
         *context.state_change = GameStateChange::Swap(Box::new(MainMenu));
@@ -146,7 +146,7 @@ impl Preloader {
         );
     }
 
-    fn load_sounds() {
+    fn load_sounds_and_music() {
         let mut audio = Audio::write();
         let mut audio = audio.write().unwrap();
 
@@ -164,6 +164,21 @@ impl Preloader {
         );
         audio.register("sword", include_bytes!("../../../assets/sounds/sword.ogg"));
         audio.register("axe", include_bytes!("../../../assets/sounds/axe.ogg"));
+        audio.register(
+            "collect",
+            include_bytes!("../../../assets/sounds/collect.ogg"),
+        );
+        audio.register(
+            "button/select",
+            include_bytes!("../../../assets/sounds/button-select.ogg"),
+        );
+        audio.register(
+            "button/click",
+            include_bytes!("../../../assets/sounds/button-click.ogg"),
+        );
+
+        audio.register("forest", include_bytes!("../../../assets/music/forest.ogg"));
+        audio.register("battle", include_bytes!("../../../assets/music/battle.ogg"));
     }
 
     fn setup_gui_inputs(context: &mut GameContext) {
