@@ -140,7 +140,7 @@ impl GameState for Gameplay {
         let _ = self.music_battle.stop(Default::default());
     }
 
-    fn update(&mut self, mut context: GameContext, delta_time: f32) {
+    fn fixed_update(&mut self, mut context: GameContext, delta_time: f32) {
         self.maintain(delta_time);
 
         if self.exit.get().is_down() {

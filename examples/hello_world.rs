@@ -137,7 +137,7 @@ impl GameState for State {
         context.input.pop_mapping();
     }
 
-    fn update(&mut self, context: GameContext, delta_time: f32) {
+    fn fixed_update(&mut self, context: GameContext, delta_time: f32) {
         let movement = Vec2::<f32>::from(self.movement.get());
         self.ferris.transform.position += movement * SPEED * delta_time;
 

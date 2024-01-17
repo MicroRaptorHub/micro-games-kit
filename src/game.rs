@@ -32,6 +32,8 @@ pub trait GameState {
 
     fn update(&mut self, context: GameContext, delta_time: f32) {}
 
+    fn fixed_update(&mut self, context: GameContext, delta_time: f32) {}
+
     fn draw(&mut self, context: GameContext) {}
 
     fn draw_gui(&mut self, context: GameContext) {}
@@ -46,6 +48,7 @@ pub struct GameInstance {
     gui: GuiContext,
     input: InputContext,
     timer: Instant,
+    fixed_timer: Instant,
     states: Vec<Box<dyn GameState>>,
     state_change: GameStateChange,
 }
@@ -61,6 +64,7 @@ impl Default for GameInstance {
             gui: Default::default(),
             input: Default::default(),
             timer: Instant::now(),
+            fixed_timer: Instant::now(),
             states: Default::default(),
             state_change: Default::default(),
         }
@@ -110,10 +114,24 @@ impl GameInstance {
 
     pub fn process_frame(&mut self, graphics: &mut Graphics<Vertex>) {
         let delta_time = self.timer.elapsed().as_secs_f32();
-        if delta_time > self.fixed_delta_time {
+        if let Some(state) = self.states.last_mut() {
+            state.update(
+                GameContext {
+                    graphics,
+                    draw: &mut self.draw,
+                    gui: &mut self.gui,
+                    input: &mut self.input,
+                    state_change: &mut self.state_change,
+                },
+                delta_time,
+            );
+        }
+
+        let fixed_delta_time = self.fixed_timer.elapsed().as_secs_f32();
+        if fixed_delta_time > self.fixed_delta_time {
             self.timer = Instant::now();
             if let Some(state) = self.states.last_mut() {
-                state.update(
+                state.fixed_update(
                     GameContext {
                         graphics,
                         draw: &mut self.draw,
@@ -121,7 +139,7 @@ impl GameInstance {
                         input: &mut self.input,
                         state_change: &mut self.state_change,
                     },
-                    delta_time,
+                    fixed_delta_time,
                 );
             }
         }
