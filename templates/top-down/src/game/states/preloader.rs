@@ -144,6 +144,72 @@ impl Preloader {
             1,
             1,
         );
+
+        // ui
+        load_texture(
+            context.draw,
+            context.graphics,
+            "ui/panel",
+            include_bytes!("../../../assets/images/ui/panel.png"),
+            1,
+            1,
+        );
+        load_texture(
+            context.draw,
+            context.graphics,
+            "ui/bar",
+            include_bytes!("../../../assets/images/ui/bar.png"),
+            1,
+            1,
+        );
+        load_texture(
+            context.draw,
+            context.graphics,
+            "ui/button/idle",
+            include_bytes!("../../../assets/images/ui/button-idle.png"),
+            1,
+            1,
+        );
+        load_texture(
+            context.draw,
+            context.graphics,
+            "ui/button/select",
+            include_bytes!("../../../assets/images/ui/button-select.png"),
+            1,
+            1,
+        );
+        load_texture(
+            context.draw,
+            context.graphics,
+            "ui/button/trigger",
+            include_bytes!("../../../assets/images/ui/button-trigger.png"),
+            1,
+            1,
+        );
+        load_texture(
+            context.draw,
+            context.graphics,
+            "ui/cover",
+            include_bytes!("../../../assets/images/ui/cover.png"),
+            1,
+            1,
+        );
+        load_texture(
+            context.draw,
+            context.graphics,
+            "ui/won",
+            include_bytes!("../../../assets/images/ui/won.png"),
+            1,
+            1,
+        );
+        load_texture(
+            context.draw,
+            context.graphics,
+            "ui/lost",
+            include_bytes!("../../../assets/images/ui/lost.png"),
+            1,
+            1,
+        );
     }
 
     fn load_sounds_and_music() {

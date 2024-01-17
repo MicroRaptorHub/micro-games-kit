@@ -22,6 +22,8 @@ checks:
     just build
     just clippy
     just test
+    cd ./templates/fresh-start && just checks
+    cd ./templates/top-down && just checks
 
 clean:
     find . -name target -type d -exec rm -r {} +

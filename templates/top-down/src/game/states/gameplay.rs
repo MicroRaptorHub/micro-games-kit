@@ -171,16 +171,18 @@ impl GameState for Gameplay {
     }
 
     fn draw_gui(&mut self, context: GameContext) {
+        let health_bar_rectangle = Rect {
+            left: -50.0,
+            right: 50.0,
+            top: -60.0,
+            bottom: -40.0,
+        };
+
         {
             let state = self.player.state.read().unwrap();
             let layout = world_to_screen_content_layout(
                 state.sprite.transform.position.xy(),
-                Rect {
-                    left: -50.0,
-                    right: 50.0,
-                    top: -60.0,
-                    bottom: -45.0,
-                },
+                health_bar_rectangle,
                 &context,
             );
 
@@ -191,12 +193,7 @@ impl GameState for Gameplay {
             let state = enemy.state.read().unwrap();
             let layout = world_to_screen_content_layout(
                 state.sprite.transform.position.xy(),
-                Rect {
-                    left: -50.0,
-                    right: 50.0,
-                    top: -60.0,
-                    bottom: -45.0,
-                },
+                health_bar_rectangle,
                 &context,
             );
 

@@ -11,16 +11,16 @@ build platform="desktop":
     just build-{{platform}}
 
 build-web:
-    wasm-pack build --target web
+    wasm-pack build --target web --release
 
 build-desktop:
-    cargo build
+    cargo build --release
 
 run platform="desktop":
     just run-{{platform}}
 
 run-desktop:
-    cargo run
+    cargo run --release
 
 run-web:
     just build web

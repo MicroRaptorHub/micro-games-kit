@@ -1,11 +1,17 @@
-use crate::game::ui::text_button::text_button;
+use crate::game::ui::{make_theme, text_button::text_button};
 use micro_games_kit::{
     context::GameContext,
     game::{GameState, GameStateChange},
-    third_party::raui_immediate_widgets::core::{
-        containers::{horizontal_box, nav_vertical_box},
-        text_box, Color, FlexBoxItemLayout, TextBoxFont, TextBoxHorizontalAlign, TextBoxProps,
-        TextBoxVerticalAlign,
+    third_party::{
+        raui_immediate::apply_shared_props,
+        raui_immediate_widgets::{
+            core::{
+                containers::{horizontal_box, nav_vertical_box},
+                image_box, FlexBoxItemLayout, ImageBoxAspectRatio, ImageBoxImage, ImageBoxMaterial,
+                ImageBoxProps, TextBoxVerticalAlign,
+            },
+            material::{text_paper, TextPaperProps},
+        },
     },
 };
 
@@ -39,58 +45,69 @@ impl GameEnd {
 impl GameState for GameEnd {
     fn enter(&mut self, context: GameContext) {
         context.graphics.color = [0.2, 0.2, 0.2];
+        context.gui.coords_map_scaling = Default::default();
     }
 
     fn draw_gui(&mut self, context: GameContext) {
-        nav_vertical_box((), || {
-            text_box(TextBoxProps {
-                text: self.reason.to_string(),
-                horizontal_align: TextBoxHorizontalAlign::Center,
-                vertical_align: TextBoxVerticalAlign::Middle,
-                font: TextBoxFont {
-                    name: "roboto".to_owned(),
-                    size: 150.0,
-                },
-                color: Color {
-                    r: 1.0,
-                    g: 0.1,
-                    b: 0.1,
-                    a: 1.0,
-                },
+        apply_shared_props(make_theme(), || {
+            image_box(ImageBoxProps {
+                content_keep_aspect_ratio: Some(ImageBoxAspectRatio {
+                    horizontal_alignment: 0.5,
+                    vertical_alignment: 0.0,
+                    outside: true,
+                }),
+                material: ImageBoxMaterial::Image(ImageBoxImage {
+                    id: match self.reason {
+                        GameEndReason::Lost => "ui/lost".to_owned(),
+                        GameEndReason::Won => "ui/won".to_owned(),
+                    },
+                    ..Default::default()
+                }),
                 ..Default::default()
             });
 
-            horizontal_box(
-                FlexBoxItemLayout {
-                    basis: Some(100.0),
-                    grow: 0.0,
-                    shrink: 0.0,
+            nav_vertical_box((), || {
+                text_paper(TextPaperProps {
+                    text: self.reason.to_string(),
+                    variant: "title".to_owned(),
+                    vertical_align_override: Some(TextBoxVerticalAlign::Top),
+                    color_override: Some(Default::default()),
                     ..Default::default()
-                },
-                || {
-                    let restart = text_button(
-                        FlexBoxItemLayout {
-                            margin: 20.0.into(),
-                            ..Default::default()
-                        },
-                        "Restart",
-                    );
+                });
 
-                    let exit = text_button(
-                        FlexBoxItemLayout {
-                            margin: 20.0.into(),
-                            ..Default::default()
-                        },
-                        "Exit",
-                    );
+                horizontal_box(
+                    FlexBoxItemLayout {
+                        basis: Some(100.0),
+                        grow: 0.0,
+                        shrink: 0.0,
+                        ..Default::default()
+                    },
+                    || {
+                        let restart = text_button(
+                            FlexBoxItemLayout {
+                                margin: 20.0.into(),
+                                ..Default::default()
+                            },
+                            "Restart",
+                        );
 
-                    if exit.trigger_stop() {
-                        *context.state_change = GameStateChange::Swap(Box::new(MainMenu));
-                    } else if restart.trigger_stop() {
-                        *context.state_change = GameStateChange::Swap(Box::<Gameplay>::default());
-                    }
-                },
-            );
+                        let exit = text_button(
+                            FlexBoxItemLayout {
+                                margin: 20.0.into(),
+                                ..Default::default()
+                            },
+                            "Exit",
+                        );
+
+                        if exit.trigger_stop() {
+                            *context.state_change = GameStateChange::Swap(Box::new(MainMenu));
+                        } else if restart.trigger_stop() {
+                            *context.state_change =
+                                GameStateChange::Swap(Box::<Gameplay>::default());
+                        }
+                    },
+                );
+            });
         });
     }
 }
