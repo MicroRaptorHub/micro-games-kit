@@ -16,7 +16,7 @@ use micro_games_kit::{
     animation::NamedAnimation,
     character::{Character, CharacterController},
     context::GameContext,
-    game_object::GameObject,
+    game::GameObject,
     third_party::{
         emergent::builders::behavior_tree::BehaviorTree,
         spitfire_draw::{
@@ -111,7 +111,7 @@ impl GameObject for PlayerState {
         context.graphics.main_camera.transform.position = self.sprite.transform.position;
     }
 
-    fn update(&mut self, context: &mut GameContext, delta_time: f32) {
+    fn process(&mut self, context: &mut GameContext, delta_time: f32) {
         if self.input.weapon_prev.get().is_pressed() {
             self.weapon = self.weapon.prev();
         }

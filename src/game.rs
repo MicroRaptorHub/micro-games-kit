@@ -15,6 +15,20 @@ use std::time::Instant;
 #[cfg(target_arch = "wasm32")]
 use winit::{event::Event, window::Window};
 
+pub trait GameObject {
+    #[allow(unused_variables)]
+    fn activate(&mut self, context: &mut GameContext) {}
+
+    #[allow(unused_variables)]
+    fn deactivate(&mut self, context: &mut GameContext) {}
+
+    #[allow(unused_variables)]
+    fn process(&mut self, context: &mut GameContext, delta_time: f32) {}
+
+    #[allow(unused_variables)]
+    fn draw(&mut self, context: &mut GameContext) {}
+}
+
 #[derive(Default)]
 pub enum GameStateChange {
     #[default]
@@ -44,6 +58,7 @@ pub struct GameInstance {
     pub color_shader: &'static str,
     pub image_shader: &'static str,
     pub text_shader: &'static str,
+    pub input_maintain_on_fixed_step: bool,
     draw: DrawContext,
     gui: GuiContext,
     input: InputContext,
@@ -60,6 +75,7 @@ impl Default for GameInstance {
             color_shader: "color",
             image_shader: "image",
             text_shader: "text",
+            input_maintain_on_fixed_step: true,
             draw: Default::default(),
             gui: Default::default(),
             input: Default::default(),
@@ -104,6 +120,11 @@ impl GameInstance {
         self
     }
 
+    pub fn with_input_maintain_on_fixed_step(mut self, value: bool) -> Self {
+        self.input_maintain_on_fixed_step = value;
+        self
+    }
+
     pub fn fps(&self) -> usize {
         (1.0 / self.fixed_delta_time).ceil() as usize
     }
@@ -115,6 +136,7 @@ impl GameInstance {
     pub fn process_frame(&mut self, graphics: &mut Graphics<Vertex>) {
         let delta_time = self.timer.elapsed().as_secs_f32();
         if let Some(state) = self.states.last_mut() {
+            self.timer = Instant::now();
             state.update(
                 GameContext {
                     graphics,
@@ -128,8 +150,8 @@ impl GameInstance {
         }
 
         let fixed_delta_time = self.fixed_timer.elapsed().as_secs_f32();
-        if fixed_delta_time > self.fixed_delta_time {
-            self.timer = Instant::now();
+        let fixed_step = if fixed_delta_time > self.fixed_delta_time {
+            self.fixed_timer = Instant::now();
             if let Some(state) = self.states.last_mut() {
                 state.fixed_update(
                     GameContext {
@@ -142,7 +164,10 @@ impl GameInstance {
                     fixed_delta_time,
                 );
             }
-        }
+            true
+        } else {
+            false
+        };
 
         self.draw.begin_frame(graphics);
         self.draw.push_shader(&ShaderRef::name(self.image_shader));
@@ -174,7 +199,9 @@ impl GameInstance {
             &ShaderRef::name(self.text_shader),
         );
         self.draw.end_frame();
-        self.input.maintain();
+        if !self.input_maintain_on_fixed_step || fixed_step {
+            self.input.maintain();
+        }
 
         match std::mem::take(&mut self.state_change) {
             GameStateChange::Continue => {}

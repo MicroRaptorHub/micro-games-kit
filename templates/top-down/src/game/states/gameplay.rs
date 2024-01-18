@@ -6,6 +6,7 @@ use crate::game::{
     enemy::EnemyState,
     item::{Item, ItemKind},
     player::PlayerState,
+    torch::Torch,
     ui::{health_bar::health_bar, world_to_screen_content_layout},
     utils::{
         audio::Audio,
@@ -16,8 +17,7 @@ use crate::game::{
 use micro_games_kit::{
     character::Character,
     context::GameContext,
-    game::{GameState, GameStateChange},
-    game_object::GameObject,
+    game::{GameObject, GameState, GameStateChange},
     third_party::{
         kira::sound::static_sound::StaticSoundHandle,
         rand::{thread_rng, Rng},
@@ -42,6 +42,7 @@ pub struct Gameplay {
     player: Character<PlayerState>,
     enemies: HashMap<ID<EnemyState>, Character<EnemyState>>,
     items: HashMap<ID<Item>, Item>,
+    torch: Torch,
     exit: InputActionRef,
     exit_handle: Option<ID<InputMapping>>,
     map_radius: f32,
@@ -74,6 +75,7 @@ impl Default for Gameplay {
             player: PlayerState::new_character([0.0, 0.0, 0.0]),
             enemies: Default::default(),
             items: Default::default(),
+            torch: Torch::new([0.0, 0.0]),
             exit: Default::default(),
             exit_handle: None,
             map_radius: 800.0,
@@ -147,7 +149,7 @@ impl GameState for Gameplay {
             *context.state_change = GameStateChange::Swap(Box::new(MainMenu));
         }
 
-        self.update_game_objects(&mut context, delta_time);
+        self.process_game_objects(&mut context, delta_time);
 
         self.resolve_collisions();
 
@@ -158,6 +160,8 @@ impl GameState for Gameplay {
 
     fn draw(&mut self, mut context: GameContext) {
         self.map.draw(context.draw, context.graphics);
+
+        self.torch.draw(&mut context);
 
         for item in self.items.values_mut() {
             item.draw(&mut context);
@@ -262,11 +266,13 @@ impl Gameplay {
         );
     }
 
-    fn update_game_objects(&mut self, context: &mut GameContext, delta_time: f32) {
-        self.player.update(context, delta_time);
+    fn process_game_objects(&mut self, context: &mut GameContext, delta_time: f32) {
+        self.torch.process(context, delta_time);
+
+        self.player.process(context, delta_time);
 
         for enemy in self.enemies.values_mut() {
-            enemy.update(context, delta_time);
+            enemy.process(context, delta_time);
             enemy
                 .state
                 .write()

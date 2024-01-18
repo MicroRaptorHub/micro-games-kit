@@ -144,6 +144,24 @@ impl Preloader {
             1,
             1,
         );
+        load_texture(
+            context.draw,
+            context.graphics,
+            "item/torch",
+            include_bytes!("../../../assets/images/item/torch.png"),
+            1,
+            1,
+        );
+
+        // particles
+        load_texture(
+            context.draw,
+            context.graphics,
+            "particle/fire",
+            include_bytes!("../../../assets/images/particles/fire.png"),
+            1,
+            1,
+        );
 
         // ui
         load_texture(

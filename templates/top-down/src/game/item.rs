@@ -1,6 +1,6 @@
 use micro_games_kit::{
     context::GameContext,
-    game_object::GameObject,
+    game::GameObject,
     third_party::{
         rand::random,
         spitfire_draw::{

@@ -2,6 +2,7 @@ pub mod enemy;
 pub mod item;
 pub mod player;
 pub mod states;
+pub mod torch;
 pub mod ui;
 pub mod utils;
 
@@ -15,7 +16,7 @@ pub fn main() {
     let config = Config::load_from_str(include_str!("../assets/GameConfig.toml"));
 
     GameLauncher::new(GameInstance::new(Preloader))
-        .title("top-down")
+        .title("RED HOOD")
         .config(config.expect("Could not load Game Config!"))
         .run();
 }

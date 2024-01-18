@@ -19,7 +19,7 @@ use micro_games_kit::{
     animation::NamedAnimation,
     character::{Character, CharacterController},
     context::GameContext,
-    game_object::GameObject,
+    game::GameObject,
     third_party::{
         emergent::{builders::behavior_tree::BehaviorTree, combinators::all::CombinatorAll},
         spitfire_draw::{
@@ -81,7 +81,7 @@ impl Default for EnemyState {
 }
 
 impl GameObject for EnemyState {
-    fn update(&mut self, _: &mut GameContext, delta_time: f32) {
+    fn process(&mut self, _: &mut GameContext, delta_time: f32) {
         self.ai.cooldown_seconds = (self.ai.cooldown_seconds - delta_time).max(0.0);
         self.blink_seconds = (self.blink_seconds - delta_time).max(0.0);
     }

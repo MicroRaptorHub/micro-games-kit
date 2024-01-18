@@ -1,4 +1,4 @@
-use crate::{context::GameContext, game_object::GameObject};
+use crate::{context::GameContext, game::GameObject};
 use emergent::task::Task;
 use raui_core::{Managed, ManagedRefMut};
 use spitfire_input::{InputMapping, InputMappingRef};
@@ -106,7 +106,7 @@ impl<State: GameObject> GameObject for Character<State> {
         self.state.write().unwrap().deactivate(context);
     }
 
-    fn update(&mut self, context: &mut GameContext, delta_time: f32) {
+    fn process(&mut self, context: &mut GameContext, delta_time: f32) {
         if let CharacterController::Ai(task) = &mut self.controller {
             let mut memory = CharacterMemory {
                 delta_time,
@@ -121,7 +121,7 @@ impl<State: GameObject> GameObject for Character<State> {
         };
         self.task.on_process(&mut memory);
         self.task.on_update(&mut memory);
-        self.state.write().unwrap().update(context, delta_time);
+        self.state.write().unwrap().process(context, delta_time);
     }
 
     fn draw(&mut self, context: &mut GameContext) {
