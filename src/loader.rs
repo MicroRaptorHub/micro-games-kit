@@ -112,7 +112,7 @@ pub fn build_texture(
                 image.height() / pages,
                 pages,
                 GlowTextureFormat::Rgba,
-                image.as_raw(),
+                Some(image.as_raw()),
             )
             .unwrap(),
     );

@@ -62,7 +62,7 @@ impl Config {
             vsync: self.vsync,
             double_buffer: self.double_buffer,
             hardware_acceleration: self.hardware_acceleration,
-            color: [0.0, 0.0, 0.0],
+            color: [0.0, 0.0, 0.0, 0.0],
             ..Default::default()
         }
     }

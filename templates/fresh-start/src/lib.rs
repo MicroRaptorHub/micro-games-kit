@@ -1,7 +1,6 @@
 #![cfg(target_arch = "wasm32")]
 
-mod game;
-pub mod states;
+pub mod game;
 
 use wasm_bindgen::prelude::*;
 

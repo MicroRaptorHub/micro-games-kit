@@ -1,4 +1,6 @@
-use crate::states::gameplay::Gameplay;
+pub mod states;
+
+use self::states::gameplay::Gameplay;
 use micro_games_kit::{config::Config, game::GameInstance, GameLauncher};
 
 pub fn main() {

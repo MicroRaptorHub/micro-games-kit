@@ -19,7 +19,7 @@ pub struct MainMenu;
 
 impl GameState for MainMenu {
     fn enter(&mut self, context: GameContext) {
-        context.graphics.color = [0.2, 0.2, 0.2];
+        context.graphics.color = [0.2, 0.2, 0.2, 1.0];
         context.gui.coords_map_scaling = Default::default();
     }
 
@@ -56,12 +56,16 @@ impl GameState for MainMenu {
                 });
 
                 let new_game = text_button(button_props.clone(), "New Game");
-                let exit = text_button(button_props, "Exit");
-
                 if new_game.trigger_stop() {
                     *context.state_change = GameStateChange::Swap(Box::<Gameplay>::default());
-                } else if exit.trigger_stop() {
-                    *context.state_change = GameStateChange::Pop;
+                }
+
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    let exit = text_button(button_props, "Exit");
+                    if exit.trigger_stop() {
+                        *context.state_change = GameStateChange::Pop;
+                    }
                 }
             });
         });
