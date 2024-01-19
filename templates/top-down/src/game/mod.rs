@@ -1,3 +1,4 @@
+pub mod drawables;
 pub mod enemy;
 pub mod item;
 pub mod player;

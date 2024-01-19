@@ -80,6 +80,20 @@ impl Preloader {
             Shader::TEXTURED_VERTEX_2D,
             include_str!("../../../assets/shaders/character.glsl"),
         );
+        load_shader(
+            context.draw,
+            context.graphics,
+            "sphere-light",
+            Shader::TEXTURED_VERTEX_2D,
+            include_str!("../../../assets/shaders/sphere_light.glsl"),
+        );
+        load_shader(
+            context.draw,
+            context.graphics,
+            "lighting",
+            Shader::TEXTURED_VERTEX_2D,
+            include_str!("../../../assets/shaders/lighting.glsl"),
+        );
     }
 
     fn load_fonts(context: &mut GameContext) {

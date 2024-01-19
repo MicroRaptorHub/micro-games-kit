@@ -3,6 +3,7 @@ use super::{
     main_menu::MainMenu,
 };
 use crate::game::{
+    drawables::light::draw_sphere_light,
     enemy::EnemyState,
     item::{Item, ItemKind},
     player::PlayerState,
@@ -26,10 +27,14 @@ use micro_games_kit::{
             text_box, Color, ContentBoxItemLayout, Rect, TextBoxFont, TextBoxProps,
         },
         spitfire_draw::{
+            canvas::Canvas,
             sprite::{Sprite, SpriteTexture},
-            utils::{Drawable, TextureRef},
+            utils::{Drawable, ShaderRef, TextureRef},
         },
-        spitfire_glow::{graphics::CameraScaling, renderer::GlowTextureFiltering},
+        spitfire_glow::{
+            graphics::CameraScaling,
+            renderer::{GlowBlending, GlowTextureFiltering, GlowTextureFormat, GlowUniformValue},
+        },
         spitfire_input::{InputActionRef, InputConsume, InputMapping, VirtualAction},
         typid::ID,
         windowing::event::VirtualKeyCode,
@@ -43,6 +48,7 @@ pub struct Gameplay {
     enemies: HashMap<ID<EnemyState>, Character<EnemyState>>,
     items: HashMap<ID<Item>, Item>,
     torch: Torch,
+    darkness: Option<Canvas>,
     exit: InputActionRef,
     exit_handle: Option<ID<InputMapping>>,
     map_radius: f32,
@@ -58,12 +64,10 @@ impl Default for Gameplay {
         let mut music_forest = audio.play("forest").unwrap();
         let _ = music_forest.set_volume(0.0, Default::default());
         let _ = music_forest.set_loop_region(..);
-        let _ = music_forest.pause(Default::default());
 
         let mut music_battle = audio.play("battle").unwrap();
         let _ = music_battle.set_volume(0.0, Default::default());
         let _ = music_battle.set_loop_region(..);
-        let _ = music_battle.pause(Default::default());
 
         Self {
             map: Sprite::single(SpriteTexture {
@@ -76,6 +80,7 @@ impl Default for Gameplay {
             enemies: Default::default(),
             items: Default::default(),
             torch: Torch::new([0.0, 0.0]),
+            darkness: None,
             exit: Default::default(),
             exit_handle: None,
             map_radius: 800.0,
@@ -122,8 +127,11 @@ impl GameState for Gameplay {
                 .insert(ID::new(), Item::new(ItemKind::random(), position));
         }
 
-        let _ = self.music_forest.resume(Default::default());
-        let _ = self.music_battle.resume(Default::default());
+        self.darkness = Some(
+            Canvas::from_screen(vec![GlowTextureFormat::Monochromatic], &context.graphics)
+                .unwrap()
+                .color([0.0, 0.0, 0.0, 0.0]),
+        );
     }
 
     fn exit(&mut self, mut context: GameContext) {
@@ -172,6 +180,57 @@ impl GameState for Gameplay {
         }
 
         self.player.draw(&mut context);
+
+        if let Some(canvas) = &mut self.darkness {
+            let _ = canvas.match_to_screen(&context.graphics);
+
+            canvas.with(context.draw, context.graphics, true, |draw, graphics| {
+                draw_sphere_light(
+                    self.player
+                        .state
+                        .read()
+                        .unwrap()
+                        .sprite
+                        .transform
+                        .position
+                        .xy(),
+                    200.0,
+                    0.0..=1.0,
+                    1.0,
+                    draw,
+                    graphics,
+                );
+
+                draw_sphere_light(
+                    self.torch.sprite.transform.position.xy(),
+                    350.0,
+                    0.0..=1.0,
+                    1.0,
+                    draw,
+                    graphics,
+                );
+            });
+
+            Sprite::single(
+                canvas
+                    .sprite_texture(0, "u_image".into(), GlowTextureFiltering::Linear)
+                    .unwrap(),
+            )
+            .pivot([0.0, 1.0].into())
+            .scale([1.0, -1.0].into())
+            .shader(ShaderRef::name("lighting"))
+            .blending(GlowBlending::Alpha)
+            .screen_space(true)
+            .uniform(
+                "u_dark_color".into(),
+                GlowUniformValue::F4([0.0, 0.0, 0.0, 1.0]),
+            )
+            .uniform(
+                "u_light_color".into(),
+                GlowUniformValue::F4([0.0, 0.0, 0.0, 0.0]),
+            )
+            .draw(context.draw, context.graphics);
+        }
     }
 
     fn draw_gui(&mut self, context: GameContext) {
