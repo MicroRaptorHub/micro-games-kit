@@ -128,7 +128,7 @@ impl GameState for Gameplay {
         }
 
         self.darkness = Some(
-            Canvas::from_screen(vec![GlowTextureFormat::Monochromatic], &context.graphics)
+            Canvas::from_screen(vec![GlowTextureFormat::Monochromatic], context.graphics)
                 .unwrap()
                 .color([0.0, 0.0, 0.0, 0.0]),
         );
@@ -182,7 +182,7 @@ impl GameState for Gameplay {
         self.player.draw(&mut context);
 
         if let Some(canvas) = &mut self.darkness {
-            let _ = canvas.match_to_screen(&context.graphics);
+            let _ = canvas.match_to_screen(context.graphics);
 
             canvas.with(context.draw, context.graphics, true, |draw, graphics| {
                 draw_sphere_light(
