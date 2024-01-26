@@ -17,8 +17,10 @@ use micro_games_kit::{
     character::{Character, CharacterController},
     context::GameContext,
     game::GameObject,
+    gamepad::{GamepadInput, GamepadInputAxis},
     third_party::{
         emergent::builders::behavior_tree::BehaviorTree,
+        gilrs::{Axis, Button},
         spitfire_draw::{
             sprite::{Sprite, SpriteTexture},
             utils::{Drawable, ShaderRef, TextureRef},
@@ -73,6 +75,7 @@ pub struct PlayerInputState {
     pub attack: InputActionRef,
     pub weapon_prev: InputActionRef,
     pub weapon_next: InputActionRef,
+    pub gamepad: GamepadInput,
 }
 
 pub struct PlayerState {
@@ -112,6 +115,8 @@ impl GameObject for PlayerState {
     }
 
     fn process(&mut self, context: &mut GameContext, delta_time: f32) {
+        self.input.gamepad.apply();
+
         if self.input.weapon_prev.get().is_pressed() {
             self.weapon = self.weapon.prev();
         }
@@ -160,6 +165,19 @@ impl PlayerState {
         state.input.movement =
             CardinalInputCombinator::new(left.clone(), right.clone(), up.clone(), down.clone());
         state.sprite.transform.position = position.into();
+        state.input.gamepad = GamepadInput::default()
+            .auto_acquire()
+            .axis(
+                Axis::LeftStickX,
+                GamepadInputAxis::double(left.clone(), right.clone(), 0.1),
+            )
+            .axis(
+                Axis::LeftStickY,
+                GamepadInputAxis::double(down.clone(), up.clone(), 0.1),
+            )
+            .button(Button::South, state.input.attack.clone())
+            .button(Button::West, state.input.weapon_prev.clone())
+            .button(Button::North, state.input.weapon_next.clone());
 
         let mapping = InputMapping::default()
             .action(VirtualAction::KeyButton(VirtualKeyCode::A), left)

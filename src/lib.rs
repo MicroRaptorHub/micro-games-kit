@@ -1,6 +1,7 @@
 pub mod third_party {
     pub use emergent;
     pub use fontdue;
+    pub use gilrs;
     #[cfg(not(target_arch = "wasm32"))]
     pub use glutin as windowing;
     pub use image;
@@ -34,6 +35,7 @@ pub mod character;
 pub mod config;
 pub mod context;
 pub mod game;
+pub mod gamepad;
 pub mod grid_world;
 pub mod loader;
 pub mod pcg;
