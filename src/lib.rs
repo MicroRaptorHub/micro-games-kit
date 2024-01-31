@@ -1,4 +1,5 @@
 pub mod third_party {
+    pub use anim8;
     pub use emergent;
     pub use fontdue;
     pub use gilrs;
