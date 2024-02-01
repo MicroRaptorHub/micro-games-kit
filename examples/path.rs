@@ -1,4 +1,7 @@
-use anim8::{spline::Spline, utils::factor_iter};
+use anim8::{
+    spline::Spline,
+    utils::{factor_iter, range_iter},
+};
 use micro_games_kit::{
     config::Config,
     context::GameContext,
@@ -52,15 +55,27 @@ impl GameState for State {
 
     fn draw(&mut self, context: GameContext) {
         let emitter = PrimitivesEmitter::default().shader(ShaderRef::name("color"));
+
         emitter
-            .emit_lines(factor_iter(100).map(|factor| self.spline.sample(factor).into()))
-            .thickness(5.0)
+            .emit_lines(factor_iter(50).map(|factor| self.spline.sample(factor).into()))
+            .thickness(2.0)
+            .tint(Rgba::new(0.25, 0.25, 1.0, 1.0))
             .draw(context.draw, context.graphics);
+
+        for distance in range_iter(30, 0.0, self.spline.length()) {
+            let factor = self.spline.find_time_for_distance(distance);
+            let point = self.spline.sample(factor);
+            emitter
+                .emit_circle(point.into(), 1.0, 0.1)
+                .tint(Rgba::new(0.25, 1.0, 0.25, 1.0))
+                .draw(context.draw, context.graphics);
+        }
+
         for point in self.spline.points() {
             emitter
-                .emit_circle(point.point.into(), 10.0, 0.1)
+                .emit_circle(point.point.into(), 2.0, 0.1)
                 .tint(Rgba::new(1.0, 0.25, 0.25, 1.0))
-                .draw(context.draw, context.graphics)
+                .draw(context.draw, context.graphics);
         }
     }
 }
