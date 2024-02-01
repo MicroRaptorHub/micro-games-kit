@@ -3,17 +3,23 @@ use micro_games_kit::{
     context::GameContext,
     game::{GameInstance, GameState},
     grid_world::{GridWorld, GridWorldLayer},
-    loader::load_shader,
+    loader::{load_font, load_shader},
     pcg::{Grid, NoiseGenerator, RemapGenerator, SubGenerator},
     GameLauncher,
 };
-use noise::{Fbm, MultiFractal, SuperSimplex};
+use noise::{Fbm, MultiFractal, NoiseFn, SuperSimplex};
+use raui_immediate_widgets::core::{text_box, TextBoxFont, TextBoxHorizontalAlign, TextBoxProps};
 use spitfire_draw::{
-    tiles::{TileMap, TileSet, TileSetItem},
+    tiles::{TileInstance, TileMap, TileSet, TileSetItem, TilesEmitter},
     utils::{Drawable, ShaderRef},
 };
 use spitfire_glow::graphics::{CameraScaling, Shader};
-use std::error::Error;
+use spitfire_input::{ArrayInputCombinator, InputAxisRef, InputMapping, VirtualAxis};
+use std::{
+    array::from_fn,
+    error::Error,
+    ops::{Add, Div, Mul, RangeInclusive, Sub},
+};
 use vek::{Rgba, Vec2};
 
 const SIZE: usize = 50;
@@ -23,9 +29,18 @@ const GRASS: usize = 2;
 const SAND: usize = 3;
 const ROCK: usize = 4;
 const SNOW: usize = 5;
+const WIND: Vec2<f64> = Vec2 { x: 1.0, y: 0.5 };
+
+const CLEAR_SKY: usize = 0;
+const CLOUD_SKY: usize = 1;
+const RAINY_SKY: usize = 2;
 
 struct State {
     world: GridWorld,
+    weather_tileset: TileSet,
+    weather_noise: Fbm<SuperSimplex>,
+    time: f64,
+    mouse_position: ArrayInputCombinator<2>,
 }
 
 impl Default for State {
@@ -111,6 +126,23 @@ impl Default for State {
                     .mapping(SNOW, TileSetItem::default().tint(Rgba::white())),
                 GridWorldLayer::new(TileMap::with_buffer(SIZE.into(), buffer).unwrap()),
             ),
+            weather_tileset: TileSet::default()
+                .shader(ShaderRef::name("color"))
+                .mapping(
+                    CLEAR_SKY,
+                    TileSetItem::default().tint(Rgba::new(1.0, 1.0, 1.0, 0.0)),
+                )
+                .mapping(
+                    CLOUD_SKY,
+                    TileSetItem::default().tint(Rgba::new(1.0, 1.0, 1.0, 0.8)),
+                )
+                .mapping(
+                    RAINY_SKY,
+                    TileSetItem::default().tint(Rgba::new(0.3, 0.3, 0.3, 0.8)),
+                ),
+            weather_noise: Fbm::<SuperSimplex>::default().set_frequency(0.03),
+            time: 0.0,
+            mouse_position: Default::default(),
         }
     }
 }
@@ -126,11 +158,117 @@ impl GameState for State {
             Shader::COLORED_VERTEX_2D,
             Shader::PASS_FRAGMENT,
         );
+        load_shader(
+            context.draw,
+            context.graphics,
+            "text",
+            Shader::TEXT_VERTEX,
+            Shader::TEXT_FRAGMENT,
+        );
+
+        load_font(
+            context.draw,
+            "roboto",
+            include_bytes!("../resources/Roboto-Regular.ttf"),
+        );
+
+        let mouse_x = InputAxisRef::default();
+        let mouse_y = InputAxisRef::default();
+        self.mouse_position = ArrayInputCombinator::new([mouse_x.clone(), mouse_y.clone()]);
+        context.input.push_mapping(
+            InputMapping::default()
+                .axis(VirtualAxis::MousePositionX, mouse_x)
+                .axis(VirtualAxis::MousePositionY, mouse_y),
+        );
+    }
+
+    fn fixed_update(&mut self, _: GameContext, delta_time: f32) {
+        self.time += delta_time as f64;
     }
 
     fn draw(&mut self, context: GameContext) {
         self.world.draw(context.draw, context.graphics);
+
+        TilesEmitter::default()
+            .tile_size(10.0.into())
+            .emit(
+                &self.weather_tileset,
+                (0..SIZE)
+                    .flat_map(|y| (0..SIZE).map(move |x| (x, y)))
+                    .map(|(x, y)| TileInstance {
+                        id: self.weather(x, y, self.time),
+                        location: Vec2 { x, y },
+                    }),
+            )
+            .draw(context.draw, context.graphics);
     }
+
+    fn draw_gui(&mut self, context: GameContext) {
+        let size = context
+            .graphics
+            .main_camera
+            .scaling
+            .world_size(context.graphics.main_camera.screen_size);
+        let [x, y] = self.mouse_position.get();
+        let x = remap(
+            x,
+            0.0..=context.graphics.main_camera.screen_size.x,
+            0.0..=size.x,
+        );
+        let y = remap(
+            y,
+            0.0..=context.graphics.main_camera.screen_size.y,
+            0.0..=size.y,
+        );
+        let x = ((x / 10.0) as usize).min(SIZE.saturating_sub(1));
+        let y = ((y / 10.0) as usize).min(SIZE.saturating_sub(1));
+
+        let forecast = from_fn::<String, 3, _>(|index| {
+            match self.weather(x, y, self.time + index as f64 * 5.0) {
+                0 => "Clear sky",
+                1 => "Clouds",
+                2 => "Rain",
+                _ => "<unknown>",
+            }
+            .to_owned()
+        });
+
+        text_box(TextBoxProps {
+            text: format!(
+                "Tile: {} x {}\nTime: {:.2}\nForecast:\n+0s: {}\n+5s: {}\n+10s: {}",
+                x, y, self.time, forecast[0], forecast[1], forecast[2]
+            ),
+            horizontal_align: TextBoxHorizontalAlign::Right,
+            font: TextBoxFont {
+                name: "roboto".to_owned(),
+                size: 32.0,
+            },
+            ..Default::default()
+        });
+    }
+}
+
+impl State {
+    fn weather(&self, x: usize, y: usize, time: f64) -> usize {
+        let x = x as f64 + WIND.x * time;
+        let y = y as f64 + WIND.y * time;
+        let sample = self.weather_noise.get([x, y, time]);
+        let sample = remap(sample, -0.5..=1.0, 0.0..=3.0);
+        (sample as usize).clamp(0, 2)
+    }
+}
+
+fn remap<T: Copy + Sub<Output = T> + Div<Output = T> + Add<Output = T> + Mul<Output = T>>(
+    value: T,
+    from: RangeInclusive<T>,
+    to: RangeInclusive<T>,
+) -> T {
+    let from_start = *from.start();
+    let from_end = *from.end();
+    let to_start = *to.start();
+    let to_end = *to.end();
+    let factor = (value - from_start) / (from_end - from_start);
+    (to_end - to_start) * factor + to_start
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
