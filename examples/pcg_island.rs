@@ -223,14 +223,13 @@ impl GameState for State {
         let x = ((x / 10.0) as usize).min(SIZE.saturating_sub(1));
         let y = ((y / 10.0) as usize).min(SIZE.saturating_sub(1));
 
-        let forecast = from_fn::<String, 3, _>(|index| {
+        let forecast = from_fn::<&str, 3, _>(|index| {
             match self.weather(x, y, self.time + index as f64 * 5.0) {
                 0 => "Clear sky",
                 1 => "Clouds",
                 2 => "Rain",
                 _ => "<unknown>",
             }
-            .to_owned()
         });
 
         text_box(TextBoxProps {
