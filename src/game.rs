@@ -1,4 +1,4 @@
-use crate::{context::GameContext, gamepad::GamepadInput};
+use crate::context::GameContext;
 #[cfg(not(target_arch = "wasm32"))]
 use glutin::{event::Event, window::Window};
 #[cfg(target_arch = "wasm32")]
@@ -200,7 +200,6 @@ impl GameInstance {
         );
         self.draw.end_frame();
         if !self.input_maintain_on_fixed_step || fixed_step {
-            GamepadInput::maintain();
             self.input.maintain();
         }
 

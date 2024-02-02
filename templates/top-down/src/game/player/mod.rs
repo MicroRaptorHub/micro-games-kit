@@ -17,7 +17,7 @@ use micro_games_kit::{
     character::{Character, CharacterController},
     context::GameContext,
     game::GameObject,
-    gamepad::{GamepadInput, GamepadInputAxis},
+    gamepad::{GamepadInput, GamepadInputAxis, GamepadManager},
     third_party::{
         emergent::builders::behavior_tree::BehaviorTree,
         gilrs::{Axis, Button},
@@ -75,7 +75,7 @@ pub struct PlayerInputState {
     pub attack: InputActionRef,
     pub weapon_prev: InputActionRef,
     pub weapon_next: InputActionRef,
-    pub gamepad: GamepadInput,
+    pub gamepad: Option<GamepadInput>,
 }
 
 pub struct PlayerState {
@@ -115,7 +115,9 @@ impl GameObject for PlayerState {
     }
 
     fn process(&mut self, context: &mut GameContext, delta_time: f32) {
-        self.input.gamepad.apply();
+        if let Some(gamepad) = self.input.gamepad.as_mut() {
+            gamepad.apply();
+        }
 
         if self.input.weapon_prev.get().is_pressed() {
             self.weapon = self.weapon.prev();
@@ -155,7 +157,10 @@ impl GameObject for PlayerState {
 }
 
 impl PlayerState {
-    pub fn new_character(position: impl Into<Vec3<f32>>) -> Character<PlayerState> {
+    pub fn new_character(
+        position: impl Into<Vec3<f32>>,
+        gamepads: &GamepadManager,
+    ) -> Character<PlayerState> {
         let left = InputActionRef::default();
         let right = InputActionRef::default();
         let up = InputActionRef::default();
@@ -165,19 +170,21 @@ impl PlayerState {
         state.input.movement =
             CardinalInputCombinator::new(left.clone(), right.clone(), up.clone(), down.clone());
         state.sprite.transform.position = position.into();
-        state.input.gamepad = GamepadInput::default()
-            .auto_acquire()
-            .axis(
-                Axis::LeftStickX,
-                GamepadInputAxis::double(left.clone(), right.clone(), 0.1),
-            )
-            .axis(
-                Axis::LeftStickY,
-                GamepadInputAxis::double(down.clone(), up.clone(), 0.1),
-            )
-            .button(Button::South, state.input.attack.clone())
-            .button(Button::West, state.input.weapon_prev.clone())
-            .button(Button::North, state.input.weapon_next.clone());
+        state.input.gamepad = gamepads.request_gamepad().map(|gamepad| {
+            gamepad
+                .auto_acquire()
+                .axis(
+                    Axis::LeftStickX,
+                    GamepadInputAxis::double(left.clone(), right.clone(), 0.1),
+                )
+                .axis(
+                    Axis::LeftStickY,
+                    GamepadInputAxis::double(down.clone(), up.clone(), 0.1),
+                )
+                .button(Button::South, state.input.attack.clone())
+                .button(Button::West, state.input.weapon_prev.clone())
+                .button(Button::North, state.input.weapon_next.clone())
+        });
 
         let mapping = InputMapping::default()
             .action(VirtualAction::KeyButton(VirtualKeyCode::A), left)

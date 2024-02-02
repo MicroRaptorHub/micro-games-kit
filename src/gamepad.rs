@@ -3,12 +3,8 @@ use spitfire_input::{InputActionOrAxisRef, InputAxis};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
+    rc::Rc,
 };
-
-thread_local! {
-    static INSTANCE: Option<RefCell<Gilrs>> = Gilrs::new().ok().map(RefCell::new);
-    static GAMEPADS: RefCell<HashSet<GamepadId>> = Default::default();
-}
 
 #[derive(Debug, Clone)]
 pub enum GamepadInputAxis {
@@ -44,8 +40,10 @@ impl GamepadInputAxis {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Clone)]
 pub struct GamepadInput {
+    instance: Rc<RefCell<Gilrs>>,
+    used_gamepads: Rc<RefCell<HashSet<GamepadId>>>,
     id: Option<GamepadId>,
     pub buttons: HashMap<Button, InputActionOrAxisRef>,
     pub axes: HashMap<Axis, GamepadInputAxis>,
@@ -59,52 +57,23 @@ impl Drop for GamepadInput {
 }
 
 impl GamepadInput {
-    pub fn is_supported() -> bool {
-        INSTANCE
-            .try_with(|instance| instance.is_some())
-            .unwrap_or_default()
-    }
-
-    pub fn new() -> Option<Self> {
-        let mut result = Self::default();
-        if result.acquire() {
-            Some(result)
-        } else {
-            None
-        }
-    }
-
     pub fn acquire(&mut self) -> bool {
         self.release();
-        INSTANCE
-            .try_with(|instance| {
-                if let Some(instance) = instance {
-                    let instance = instance.borrow();
-                    return GAMEPADS
-                        .try_with(|gamepads| {
-                            let mut gamepads = gamepads.borrow_mut();
-                            for (id, _) in instance.gamepads() {
-                                if !gamepads.contains(&id) {
-                                    gamepads.insert(id);
-                                    self.id = Some(id);
-                                    return true;
-                                }
-                            }
-                            false
-                        })
-                        .unwrap_or_default();
-                }
-                false
-            })
-            .unwrap_or_default()
+        let mut used_gamepads = self.used_gamepads.borrow_mut();
+        for (id, _) in self.instance.borrow().gamepads() {
+            if !used_gamepads.contains(&id) {
+                used_gamepads.insert(id);
+                self.id = Some(id);
+                return true;
+            }
+        }
+        false
     }
 
     pub fn release(&mut self) {
-        let _ = GAMEPADS.try_with(|gamepads| {
-            if let Some(id) = self.id {
-                gamepads.borrow_mut().remove(&id);
-            }
-        });
+        if let Some(id) = self.id.as_ref() {
+            self.used_gamepads.borrow_mut().remove(id);
+        }
         self.id = None;
     }
 
@@ -131,94 +100,119 @@ impl GamepadInput {
         self
     }
 
-    pub fn maintain() {
-        let _ = INSTANCE.try_with(|instance| {
-            if let Some(instance) = instance {
-                let mut instance = instance.borrow_mut();
-                while instance.next_event().is_some() {}
-            }
-        });
-    }
-
     pub fn apply(&mut self) {
         if self.auto_acquire && !self.is_connected() {
             self.acquire();
         }
         if let Some(id) = self.id {
-            let _ = INSTANCE.try_with(|instance| {
-                if let Some(instance) = instance {
-                    let instance = instance.borrow();
-                    let _ = GAMEPADS.try_with(|gamepads| {
-                        if let Some(gamepad) = instance.connected_gamepad(id) {
-                            for (id, input) in &mut self.buttons {
-                                if let Some(data) = gamepad.button_data(*id) {
-                                    match input {
-                                        InputActionOrAxisRef::Action(input) => {
-                                            input.set(input.get().change(data.is_pressed()));
-                                        }
-                                        InputActionOrAxisRef::Axis(input) => {
-                                            input.set(InputAxis(data.value()));
-                                        }
-                                        _ => {}
-                                    }
-                                }
+            let instance = self.instance.borrow();
+            let mut used_gamepads = self.used_gamepads.borrow_mut();
+            if let Some(gamepad) = instance.connected_gamepad(id) {
+                for (id, input) in &mut self.buttons {
+                    if let Some(data) = gamepad.button_data(*id) {
+                        match input {
+                            InputActionOrAxisRef::Action(input) => {
+                                input.set(input.get().change(data.is_pressed()));
                             }
-                            for (id, input) in &mut self.axes {
-                                if let Some(data) = gamepad.axis_data(*id) {
-                                    match input {
-                                        GamepadInputAxis::Single { input, deadzone } => {
-                                            let mut value = data.value().abs();
-                                            if value < *deadzone {
-                                                value = 0.0;
-                                            }
-                                            match input {
-                                                InputActionOrAxisRef::Action(input) => {
-                                                    input.set(input.get().change(value > 0.5));
-                                                }
-                                                InputActionOrAxisRef::Axis(input) => {
-                                                    input.set(InputAxis(value));
-                                                }
-                                                _ => {}
-                                            }
-                                        }
-                                        GamepadInputAxis::Double {
-                                            negative,
-                                            positive,
-                                            deadzone,
-                                        } => {
-                                            let mut value = data.value();
-                                            if value.abs() < *deadzone {
-                                                value = 0.0;
-                                            }
-                                            match positive {
-                                                InputActionOrAxisRef::Action(input) => {
-                                                    input.set(input.get().change(value > 0.5));
-                                                }
-                                                InputActionOrAxisRef::Axis(input) => {
-                                                    input.set(InputAxis(value.max(0.0)));
-                                                }
-                                                _ => {}
-                                            }
-                                            match negative {
-                                                InputActionOrAxisRef::Action(input) => {
-                                                    input.set(input.get().change(value < -0.5));
-                                                }
-                                                InputActionOrAxisRef::Axis(input) => {
-                                                    input.set(InputAxis(-value.min(0.0)));
-                                                }
-                                                _ => {}
-                                            }
-                                        }
-                                    }
-                                }
+                            InputActionOrAxisRef::Axis(input) => {
+                                input.set(InputAxis(data.value()));
                             }
-                        } else {
-                            gamepads.borrow_mut().remove(&id);
-                            self.id = None;
+                            _ => {}
                         }
-                    });
+                    }
                 }
-            });
+                for (id, input) in &mut self.axes {
+                    if let Some(data) = gamepad.axis_data(*id) {
+                        match input {
+                            GamepadInputAxis::Single { input, deadzone } => {
+                                let mut value = data.value().abs();
+                                if value < *deadzone {
+                                    value = 0.0;
+                                }
+                                match input {
+                                    InputActionOrAxisRef::Action(input) => {
+                                        input.set(input.get().change(value > 0.5));
+                                    }
+                                    InputActionOrAxisRef::Axis(input) => {
+                                        input.set(InputAxis(value));
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            GamepadInputAxis::Double {
+                                negative,
+                                positive,
+                                deadzone,
+                            } => {
+                                let mut value = data.value();
+                                if value.abs() < *deadzone {
+                                    value = 0.0;
+                                }
+                                match positive {
+                                    InputActionOrAxisRef::Action(input) => {
+                                        input.set(input.get().change(value > 0.5));
+                                    }
+                                    InputActionOrAxisRef::Axis(input) => {
+                                        input.set(InputAxis(value.max(0.0)));
+                                    }
+                                    _ => {}
+                                }
+                                match negative {
+                                    InputActionOrAxisRef::Action(input) => {
+                                        input.set(input.get().change(value < -0.5));
+                                    }
+                                    InputActionOrAxisRef::Axis(input) => {
+                                        input.set(InputAxis(-value.min(0.0)));
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                used_gamepads.remove(&id);
+                self.id = None;
+            }
+        }
+    }
+}
+
+pub struct GamepadManager {
+    instance: Option<Rc<RefCell<Gilrs>>>,
+    used_gamepads: Rc<RefCell<HashSet<GamepadId>>>,
+}
+
+impl Default for GamepadManager {
+    fn default() -> Self {
+        Self {
+            instance: Gilrs::new()
+                .ok()
+                .map(|instance| Rc::new(RefCell::new(instance))),
+            used_gamepads: Default::default(),
+        }
+    }
+}
+
+impl GamepadManager {
+    pub fn is_supported(&self) -> bool {
+        self.instance.is_some()
+    }
+
+    pub fn request_gamepad(&self) -> Option<GamepadInput> {
+        Some(GamepadInput {
+            instance: self.instance.as_ref()?.clone(),
+            used_gamepads: self.used_gamepads.clone(),
+            id: Default::default(),
+            buttons: Default::default(),
+            axes: Default::default(),
+            auto_acquire: Default::default(),
+        })
+    }
+
+    pub fn maintain(&mut self) {
+        if let Some(instance) = self.instance.as_mut() {
+            while instance.borrow_mut().next_event().is_some() {}
         }
     }
 }

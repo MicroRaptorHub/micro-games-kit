@@ -19,6 +19,7 @@ use micro_games_kit::{
     character::Character,
     context::GameContext,
     game::{GameObject, GameState, GameStateChange},
+    gamepad::GamepadManager,
     third_party::{
         kira::sound::static_sound::StaticSoundHandle,
         rand::{thread_rng, Rng},
@@ -54,6 +55,7 @@ pub struct Gameplay {
     map_radius: f32,
     music_forest: StaticSoundHandle,
     music_battle: StaticSoundHandle,
+    gamepads: GamepadManager,
 }
 
 impl Default for Gameplay {
@@ -69,6 +71,8 @@ impl Default for Gameplay {
         let _ = music_battle.set_volume(0.0, Default::default());
         let _ = music_battle.set_loop_region(..);
 
+        let gamepads = GamepadManager::default();
+
         Self {
             map: Sprite::single(SpriteTexture {
                 sampler: "u_image".into(),
@@ -76,7 +80,7 @@ impl Default for Gameplay {
                 filtering: GlowTextureFiltering::Linear,
             })
             .pivot(0.5.into()),
-            player: PlayerState::new_character([0.0, 0.0, 0.0]),
+            player: PlayerState::new_character([0.0, 0.0, 0.0], &gamepads),
             enemies: Default::default(),
             items: Default::default(),
             torch: Torch::new([0.0, 0.0]),
@@ -86,6 +90,7 @@ impl Default for Gameplay {
             map_radius: 800.0,
             music_forest,
             music_battle,
+            gamepads,
         }
     }
 }
@@ -292,7 +297,8 @@ impl GameState for Gameplay {
 }
 
 impl Gameplay {
-    fn maintain(&self, delta_time: f32) {
+    fn maintain(&mut self, delta_time: f32) {
+        self.gamepads.maintain();
         Events::maintain(delta_time);
 
         Space::write().write().unwrap().maintain(
