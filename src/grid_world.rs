@@ -156,7 +156,7 @@ impl GridWorld {
         let index = self
             .tile_instances
             .binary_search_by(|item| item.location.yx().cmp(&instance.location.yx()))
-            .map_or_else(|index| index, |index| index);
+            .unwrap_or_else(|index| index);
         self.tile_instances.insert(index, instance);
     }
 

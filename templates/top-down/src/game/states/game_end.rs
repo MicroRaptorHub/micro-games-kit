@@ -1,3 +1,4 @@
+use super::{gameplay::Gameplay, main_menu::MainMenu};
 use crate::game::ui::{make_theme, text_button::text_button};
 use micro_games_kit::{
     context::GameContext,
@@ -14,8 +15,7 @@ use micro_games_kit::{
         },
     },
 };
-
-use super::{gameplay::Gameplay, main_menu::MainMenu};
+use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameEndReason {
@@ -23,11 +23,11 @@ pub enum GameEndReason {
     Won,
 }
 
-impl ToString for GameEndReason {
-    fn to_string(&self) -> String {
+impl Display for GameEndReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Lost => "YOU LOST".to_owned(),
-            Self::Won => "YOU WON".to_owned(),
+            Self::Lost => write!(f, "YOU LOST"),
+            Self::Won => write!(f, "YOU WON"),
         }
     }
 }

@@ -41,7 +41,7 @@ use micro_games_kit::{
         windowing::event::VirtualKeyCode,
     },
 };
-use std::{collections::HashMap, f32::INFINITY};
+use std::collections::HashMap;
 
 pub struct Gameplay {
     map: Sprite,
@@ -64,12 +64,12 @@ impl Default for Gameplay {
         let mut audio = audio.write().unwrap();
 
         let mut music_forest = audio.play("forest").unwrap();
-        let _ = music_forest.set_volume(0.0, Default::default());
-        let _ = music_forest.set_loop_region(..);
+        music_forest.set_volume(0.0, Default::default());
+        music_forest.set_loop_region(..);
 
         let mut music_battle = audio.play("battle").unwrap();
-        let _ = music_battle.set_volume(0.0, Default::default());
-        let _ = music_battle.set_loop_region(..);
+        music_battle.set_volume(0.0, Default::default());
+        music_battle.set_loop_region(..);
 
         let gamepads = GamepadManager::default();
 
@@ -151,8 +151,8 @@ impl GameState for Gameplay {
             self.exit_handle = None;
         }
 
-        let _ = self.music_forest.stop(Default::default());
-        let _ = self.music_battle.stop(Default::default());
+        self.music_forest.stop(Default::default());
+        self.music_battle.stop(Default::default());
     }
 
     fn fixed_update(&mut self, mut context: GameContext, delta_time: f32) {
@@ -404,14 +404,12 @@ impl Gameplay {
                     .distance(player_position)
             })
             .min_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(INFINITY)
+            .unwrap_or(f32::INFINITY)
             .min(300.0) as f64
             / 300.0;
-        let _ = self
-            .music_forest
+        self.music_forest
             .set_volume(factor * 2.0, Default::default());
-        let _ = self
-            .music_battle
+        self.music_battle
             .set_volume((1.0 - factor) * 2.0, Default::default());
     }
 

@@ -3,7 +3,7 @@ members = ["templates/*"]
 
 [package]
 name = "micro-games-kit"
-version = "0.25.0"
+version = "0.26.0"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Micro Games Kit"
@@ -15,31 +15,31 @@ readme = "README.md"
 exclude = ["resources/", "templates/"]
 
 [dependencies]
-spitfire-core = "0.28"
-spitfire-glow = "0.28"
-spitfire-fontdue = "0.28"
-spitfire-draw = "0.28"
-spitfire-input = "0.28"
-spitfire-gui = "0.28"
-raui-core = "0.63"
-raui-immediate = "0.63"
-raui-immediate-widgets = "0.63"
+spitfire-core = "0.29"
+spitfire-glow = "0.29"
+spitfire-fontdue = "0.29"
+spitfire-draw = "0.29"
+spitfire-input = "0.29"
+spitfire-gui = "0.29"
+raui-core = "0.64"
+raui-immediate = "0.64"
+raui-immediate-widgets = "0.64"
 emergent = "1.7"
 typid = "1"
-image = "0.24"
-fontdue = "0.8"
-vek = "0.16"
+image = "0.25"
+fontdue = "0.9"
+vek = "0.17"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
-noise = "0.8"
+noise = "0.9"
 rand = "0.8"
-kira = "0.8"
-rstar = "0.11"
-gilrs = "0.10"
+kira = "0.9"
+rstar = "0.12"
+gilrs = "0.11"
 anim8 = "1.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-winit = "0.26"
+winit = "0.30"
 instant = { version = "0.1", features = ["wasm-bindgen"] }
 getrandom = { version = "0.2", features = ["js"] }
 

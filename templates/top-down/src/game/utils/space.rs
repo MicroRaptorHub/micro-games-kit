@@ -5,9 +5,10 @@ use micro_games_kit::third_party::{
     typid::ID,
     vek::Vec2,
 };
+use std::cell::RefCell;
 
 thread_local! {
-    static INSTANCE: Managed<Space> = Default::default();
+    static INSTANCE: RefCell<Managed<Space>> = Default::default();
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -71,11 +72,11 @@ pub struct Space {
 
 impl Space {
     pub fn read() -> ManagedRef<Self> {
-        INSTANCE.with(|instance| instance.lazy().borrow().unwrap())
+        INSTANCE.with(|instance| instance.borrow().borrow().unwrap())
     }
 
     pub fn write() -> ManagedRefMut<Self> {
-        INSTANCE.with(|instance| instance.lazy().borrow_mut().unwrap())
+        INSTANCE.with(|instance| instance.borrow_mut().borrow_mut().unwrap())
     }
 
     pub fn maintain(&mut self, objects: Vec<SpaceObject>) {
