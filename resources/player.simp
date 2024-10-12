@@ -1,0 +1,9 @@
+mod player {
+    struct Player { x, y, speed }
+
+    func on_update(this, dt, mx, my) {
+        var spd = math::mul(this.speed, dt);
+        this.x = math::add(this.x, math::mul(mx, spd));
+        this.y = math::add(this.y, math::mul(my, spd));
+    }
+}

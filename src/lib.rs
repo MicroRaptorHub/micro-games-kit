@@ -8,6 +8,11 @@ pub mod third_party {
     pub use image;
     #[cfg(target_arch = "wasm32")]
     pub use instant::Instant;
+    pub use intuicio_backend_vm;
+    pub use intuicio_core;
+    pub use intuicio_data;
+    pub use intuicio_derive;
+    pub use intuicio_frontend_simpleton;
     pub use kira;
     pub use noise;
     pub use rand;
@@ -40,6 +45,7 @@ pub mod gamepad;
 pub mod grid_world;
 pub mod loader;
 pub mod pcg;
+pub mod scripting;
 pub mod tag;
 
 use config::Config;

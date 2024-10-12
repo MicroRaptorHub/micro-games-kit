@@ -3,7 +3,7 @@ members = ["templates/*"]
 
 [package]
 name = "micro-games-kit"
-version = "0.26.0"
+version = "0.27.0"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Micro Games Kit"
@@ -24,6 +24,11 @@ spitfire-gui = "0.29"
 raui-core = "0.64"
 raui-immediate = "0.64"
 raui-immediate-widgets = "0.64"
+intuicio-data = "0.33"
+intuicio-core = "0.33"
+intuicio-derive = "0.33"
+intuicio-backend-vm = "0.33"
+intuicio-frontend-simpleton = "0.33"
 emergent = "1.7"
 typid = "1"
 image = "0.25"
