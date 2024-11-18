@@ -8,8 +8,8 @@ format:
 build:
     cargo build
 
-run:
-    cargo run
+run NAME="top-down":
+    cd ./templates/{{NAME}} && just run
 
 clippy:
     cargo clippy

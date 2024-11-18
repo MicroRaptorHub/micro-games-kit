@@ -5,22 +5,26 @@ use micro_games_kit::{
     grid_world::{GridWorld, GridWorldLayer},
     loader::{load_font, load_shader},
     pcg::{Grid, NoiseGenerator, RemapGenerator, SubGenerator},
+    third_party::{
+        noise::{Fbm, MultiFractal, NoiseFn, SuperSimplex},
+        raui_immediate_widgets::core::{
+            text_box, TextBoxFont, TextBoxHorizontalAlign, TextBoxProps,
+        },
+        spitfire_draw::{
+            tiles::{TileInstance, TileMap, TileSet, TileSetItem, TilesEmitter},
+            utils::{Drawable, ShaderRef},
+        },
+        spitfire_glow::graphics::{CameraScaling, Shader},
+        spitfire_input::{ArrayInputCombinator, InputAxisRef, InputMapping, VirtualAxis},
+        vek::{Rgba, Vec2},
+    },
     GameLauncher,
 };
-use noise::{Fbm, MultiFractal, NoiseFn, SuperSimplex};
-use raui_immediate_widgets::core::{text_box, TextBoxFont, TextBoxHorizontalAlign, TextBoxProps};
-use spitfire_draw::{
-    tiles::{TileInstance, TileMap, TileSet, TileSetItem, TilesEmitter},
-    utils::{Drawable, ShaderRef},
-};
-use spitfire_glow::graphics::{CameraScaling, Shader};
-use spitfire_input::{ArrayInputCombinator, InputAxisRef, InputMapping, VirtualAxis};
 use std::{
     array::from_fn,
     error::Error,
     ops::{Add, Div, Mul, RangeInclusive, Sub},
 };
-use vek::{Rgba, Vec2};
 
 const SIZE: usize = 50;
 const WATER: usize = 0;
