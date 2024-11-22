@@ -10,7 +10,10 @@ use micro_games_kit::{
             utils::{Drawable, ShaderRef},
         },
         spitfire_glow::graphics::{CameraScaling, Shader},
-        vek::Rgba,
+        spitfire_input::{
+            ArrayInputCombinator, InputAxisRef, InputConsume, InputMapping, VirtualAxis,
+        },
+        vek::{Rgba, Vec2},
     },
     GameLauncher,
 };
@@ -18,6 +21,7 @@ use std::error::Error;
 
 struct State {
     spline: Spline<[f32; 2]>,
+    mouse_xy: Option<ArrayInputCombinator<2>>,
 }
 
 impl Default for State {
@@ -33,6 +37,7 @@ impl Default for State {
                 1.0,
             )
             .unwrap(),
+            mouse_xy: None,
         }
     }
 }
@@ -42,6 +47,19 @@ impl GameState for State {
         context.graphics.color = [0.2, 0.2, 0.2, 1.0];
         context.graphics.main_camera.screen_alignment = 0.5.into();
         context.graphics.main_camera.scaling = CameraScaling::FitVertical(300.0);
+
+        let pointer_x = InputAxisRef::default();
+        let pointer_y = InputAxisRef::default();
+        self.mouse_xy = Some(ArrayInputCombinator::new([
+            pointer_x.clone(),
+            pointer_y.clone(),
+        ]));
+        context.input.push_mapping(
+            InputMapping::default()
+                .consume(InputConsume::Hit)
+                .axis(VirtualAxis::MousePositionX, pointer_x)
+                .axis(VirtualAxis::MousePositionY, pointer_y),
+        );
 
         load_shader(
             context.draw,
@@ -70,6 +88,32 @@ impl GameState for State {
             emitter
                 .emit_circle(point.point.into(), 2.0, 0.1)
                 .tint(Rgba::new(1.0, 0.25, 0.25, 1.0))
+                .draw(context.draw, context.graphics);
+        }
+
+        if let Some(mouse_xy) = self.mouse_xy.as_ref() {
+            let source = Vec2::from(mouse_xy.get());
+            let source = context
+                .graphics
+                .main_camera
+                .screen_matrix()
+                .mul_point(source);
+            let source = context
+                .graphics
+                .main_camera
+                .world_matrix()
+                .inverted()
+                .mul_point(source);
+            let time = self
+                .spline
+                .find_time_closest_to_point(&source.into_array())
+                .0;
+            let target = Vec2::from(self.spline.sample(time));
+            emitter
+                .emit_circle(target, 3.0, 0.1)
+                .draw(context.draw, context.graphics);
+            emitter
+                .emit_lines([source, target])
                 .draw(context.draw, context.graphics);
         }
     }
