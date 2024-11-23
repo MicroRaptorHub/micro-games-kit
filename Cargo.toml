@@ -3,7 +3,7 @@ members = ["templates/*"]
 
 [package]
 name = "micro-games-kit"
-version = "0.27.1"
+version = "0.28.0"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Micro Games Kit"
@@ -41,7 +41,7 @@ rand = "0.8"
 kira = "0.9"
 rstar = "0.12"
 gilrs = "0.11"
-anim8 = "1.0"
+anim8 = "1.1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 winit = "0.30"
