@@ -66,7 +66,7 @@ impl GameObject {
         result.sync_state_to_script();
         // Having scriptable state object, we can call function on it
         // based on struct module name.
-        call_object(result.script_object.clone(), "on_enter", &[]);
+        call_object(result.script_object.clone(), "on_create", &[]);
         result.sync_script_to_state();
         result
     }
@@ -262,7 +262,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Create global scriptable host from script contents.
     create_host(Default::default(), SCRIPTS, []);
 
-    GameLauncher::new(GameInstance::new(Preloader::default()))
+    GameLauncher::new(GameInstance::new(Preloader))
         .title("Scripting")
         .config(Config::load_from_file("./resources/GameConfig.toml")?)
         .run();

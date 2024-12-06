@@ -171,7 +171,7 @@ impl GameState for State {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    GameLauncher::new(GameInstance::new(Preloader::default()))
+    GameLauncher::new(GameInstance::new(Preloader))
         .title("Hello World!")
         .config(Config::load_from_file("./resources/GameConfig.toml")?)
         .run();

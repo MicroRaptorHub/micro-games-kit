@@ -288,7 +288,7 @@ pub struct OffsetLocationGenerator<'a, T: Copy> {
     pub offsets: &'a Grid<Vec2<isize>>,
 }
 
-impl<'a, T: Copy> GridGenetator<T> for OffsetLocationGenerator<'a, T> {
+impl<T: Copy> GridGenetator<T> for OffsetLocationGenerator<'_, T> {
     fn generate(
         &mut self,
         mut location: Vec2<usize>,
@@ -344,7 +344,7 @@ pub struct CopyGenerator<'a, T: Copy> {
     pub other: &'a Grid<T>,
 }
 
-impl<'a, T: Copy + Add<Output = T> + Default> GridGenetator<T> for CopyGenerator<'a, T> {
+impl<T: Copy + Add<Output = T> + Default> GridGenetator<T> for CopyGenerator<'_, T> {
     fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, _: T, _: &Grid<T>) -> T {
         self.other.get(location).unwrap_or_default()
     }
@@ -354,7 +354,7 @@ pub struct AddGenerator<'a, T: Copy> {
     pub other: &'a Grid<T>,
 }
 
-impl<'a, T: Copy + Add<Output = T> + Default> GridGenetator<T> for AddGenerator<'a, T> {
+impl<T: Copy + Add<Output = T> + Default> GridGenetator<T> for AddGenerator<'_, T> {
     fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current + self.other.get(location).unwrap_or_default()
     }
@@ -364,7 +364,7 @@ pub struct SubGenerator<'a, T: Copy> {
     pub other: &'a Grid<T>,
 }
 
-impl<'a, T: Copy + Sub<Output = T> + Default> GridGenetator<T> for SubGenerator<'a, T> {
+impl<T: Copy + Sub<Output = T> + Default> GridGenetator<T> for SubGenerator<'_, T> {
     fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current - self.other.get(location).unwrap_or_default()
     }
@@ -374,7 +374,7 @@ pub struct MulGenerator<'a, T: Copy> {
     pub other: &'a Grid<T>,
 }
 
-impl<'a, T: Copy + Mul<Output = T> + Default> GridGenetator<T> for MulGenerator<'a, T> {
+impl<T: Copy + Mul<Output = T> + Default> GridGenetator<T> for MulGenerator<'_, T> {
     fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current * self.other.get(location).unwrap_or_default()
     }
@@ -384,7 +384,7 @@ pub struct DivGenerator<'a, T: Copy> {
     pub other: &'a Grid<T>,
 }
 
-impl<'a, T: Copy + Div<Output = T> + Default> GridGenetator<T> for DivGenerator<'a, T> {
+impl<T: Copy + Div<Output = T> + Default> GridGenetator<T> for DivGenerator<'_, T> {
     fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current / self.other.get(location).unwrap_or_default()
     }
@@ -394,7 +394,7 @@ pub struct MinGenerator<'a, T: Copy> {
     pub other: &'a Grid<T>,
 }
 
-impl<'a, T: Copy + Div<Output = T> + Ord + Default> GridGenetator<T> for MinGenerator<'a, T> {
+impl<T: Copy + Div<Output = T> + Ord + Default> GridGenetator<T> for MinGenerator<'_, T> {
     fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current.min(self.other.get(location).unwrap_or_default())
     }
@@ -404,7 +404,7 @@ pub struct MaxGenerator<'a, T: Copy> {
     pub other: &'a Grid<T>,
 }
 
-impl<'a, T: Copy + Div<Output = T> + Ord + Default> GridGenetator<T> for MaxGenerator<'a, T> {
+impl<T: Copy + Div<Output = T> + Ord + Default> GridGenetator<T> for MaxGenerator<'_, T> {
     fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         current.max(self.other.get(location).unwrap_or_default())
     }
@@ -448,7 +448,7 @@ pub enum ThresholdGenerator<'a, T: Copy> {
     },
 }
 
-impl<'a, T: Copy + PartialOrd + Default> GridGenetator<T> for ThresholdGenerator<'a, T> {
+impl<T: Copy + PartialOrd + Default> GridGenetator<T> for ThresholdGenerator<'_, T> {
     fn generate(&mut self, location: Vec2<usize>, _: Vec2<usize>, current: T, _: &Grid<T>) -> T {
         match self {
             Self::Constant {
@@ -553,8 +553,8 @@ impl<'a> Kernel33Generator<'a, f64> {
     }
 }
 
-impl<'a, T: Copy + Add<Output = T> + Mul<Output = T> + Default> GridGenetator<T>
-    for Kernel33Generator<'a, T>
+impl<T: Copy + Add<Output = T> + Mul<Output = T> + Default> GridGenetator<T>
+    for Kernel33Generator<'_, T>
 {
     fn generate(&mut self, location: Vec2<usize>, size: Vec2<usize>, _: T, _: &Grid<T>) -> T {
         let region = [
@@ -634,7 +634,7 @@ mod tests {
         pub scale: f64,
     }
 
-    impl<'a> GridGenetator<Vec2<isize>> for OffsetsGenerator<'a> {
+    impl GridGenetator<Vec2<isize>> for OffsetsGenerator<'_> {
         fn generate(
             &mut self,
             location: Vec2<usize>,
