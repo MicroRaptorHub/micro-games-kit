@@ -1,5 +1,6 @@
 pub mod third_party {
     pub use anim8;
+    pub use anput;
     pub use emergent;
     pub use fontdue;
     pub use gilrs;
@@ -12,9 +13,9 @@ pub mod third_party {
     pub use intuicio_core;
     pub use intuicio_data;
     pub use intuicio_derive;
-    pub use intuicio_framework_ecs;
     pub use intuicio_frontend_simpleton;
     pub use kira;
+    pub use nodio;
     pub use noise;
     pub use rand;
     pub use raui_core;
