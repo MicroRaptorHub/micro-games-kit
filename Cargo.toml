@@ -3,7 +3,7 @@ members = ["templates/*"]
 
 [package]
 name = "micro-games-kit"
-version = "0.28.2"
+version = "0.28.3"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Micro Games Kit"
@@ -31,6 +31,7 @@ intuicio-backend-vm = "0.44"
 intuicio-frontend-simpleton = "0.44"
 anput = "0.10"
 nodio = "0.1"
+keket = "0.12"
 emergent = "1.7"
 typid = "1"
 image = "0.25"
