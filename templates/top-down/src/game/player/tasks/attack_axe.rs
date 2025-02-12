@@ -1,9 +1,6 @@
 use crate::game::{
     player::PlayerState,
-    utils::{
-        audio::Audio,
-        events::{Event, Events, Instigator},
-    },
+    utils::events::{Event, Events, Instigator},
 };
 use micro_games_kit::{
     animation::{FrameAnimation, NamedAnimation},
@@ -52,11 +49,9 @@ impl Task<CharacterMemory<PlayerState>> for PlayerAttackAxeTask {
     fn on_update(&mut self, memory: &mut CharacterMemory<PlayerState>) {
         let events = self.animation.animation.update(memory.delta_time);
         {
-            let mut audio = Audio::write();
-            let mut audio = audio.write().unwrap();
             for event in events {
                 if event == "hit" {
-                    audio.play("axe");
+                    Events::write(Event::PlaySound("axe".into()));
                 }
             }
         }

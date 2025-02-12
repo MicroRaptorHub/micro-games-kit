@@ -1,16 +1,20 @@
 pub mod states;
 
 use self::states::gameplay::Gameplay;
-use micro_games_kit::{config::Config, game::GameInstance, GameLauncher};
+use micro_games_kit::{
+    assets::make_memory_database, config::Config, game::GameInstance, GameLauncher,
+};
 
 pub fn main() {
-    #[cfg(not(target_arch = "wasm32"))]
-    let config = Config::load_from_file("./assets/GameConfig.toml");
-    #[cfg(target_arch = "wasm32")]
-    let config = Config::load_from_str(include_str!("../assets/GameConfig.toml"));
-
-    GameLauncher::new(GameInstance::new(Gameplay::default()))
-        .title("Micro Game")
-        .config(config.expect("Could not load Game Config!"))
-        .run();
+    GameLauncher::new(
+        GameInstance::new(Gameplay::default()).setup_assets(|assets| {
+            *assets = make_memory_database(include_bytes!("../../assets.pack")).unwrap();
+        }),
+    )
+    .title("Micro Game")
+    .config(
+        Config::load_from_str(include_str!("../../assets/GameConfig.toml"))
+            .expect("Could not load Game Config!"),
+    )
+    .run();
 }

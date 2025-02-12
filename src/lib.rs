@@ -39,13 +39,15 @@ pub mod third_party {
 }
 
 pub mod animation;
+pub mod assets;
+pub mod audio;
 pub mod character;
 pub mod config;
 pub mod context;
 pub mod game;
 pub mod gamepad;
 pub mod grid_world;
-pub mod loader;
+pub mod nodes;
 pub mod pcg;
 pub mod scripting;
 pub mod tag;

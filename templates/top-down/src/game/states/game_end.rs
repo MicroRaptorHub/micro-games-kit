@@ -1,5 +1,8 @@
 use super::{gameplay::Gameplay, main_menu::MainMenu};
-use crate::game::ui::{make_theme, text_button::text_button};
+use crate::game::{
+    ui::{make_theme, text_button::text_button},
+    utils::events::{Event, Events},
+};
 use micro_games_kit::{
     context::GameContext,
     game::{GameState, GameStateChange},
@@ -108,6 +111,18 @@ impl GameState for GameEnd {
                     },
                 );
             });
+        });
+    }
+
+    fn fixed_update(&mut self, context: GameContext, delta_time: f32) {
+        Events::maintain(delta_time);
+
+        Events::read(|events| {
+            for event in events {
+                if let Event::PlaySound(id) = event {
+                    context.audio.play(id.as_ref());
+                }
+            }
         });
     }
 }

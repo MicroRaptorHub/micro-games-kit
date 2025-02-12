@@ -1,11 +1,10 @@
 use super::main_menu::MainMenu;
-use crate::game::utils::audio::Audio;
 use micro_games_kit::{
+    assets::ShaderAsset,
     context::GameContext,
     game::{GameState, GameStateChange},
-    loader::{load_font, load_shader, load_texture},
     third_party::{
-        spitfire_glow::graphics::Shader,
+        spitfire_glow::prelude::Shader,
         spitfire_gui::interactions::GuiInteractionsInputs,
         spitfire_input::{
             ArrayInputCombinator, InputActionRef, InputAxisRef, InputConsume, InputMapping,
@@ -22,16 +21,19 @@ macro_rules! load_texture_series {
         [$($index:literal),+]
     ) => {
         $(
-            load_texture(
-                $context.draw,
-                $context.graphics,
-                concat!($id, "/", $index),
-                include_bytes!(concat!(
-                    "../../../assets/images/", $id, "-", $index, ".png"),
-                ),
-                1,
-                1,
-            );
+            $context
+                .assets
+                .ensure(concat!(
+                    "texture://images/",
+                    $id,
+                    "-",
+                    $index,
+                    ".png?as=",
+                    $id,
+                    "/",
+                    $index,
+                ))
+                .unwrap();
         )+
     };
 }
@@ -43,7 +45,7 @@ impl GameState for Preloader {
         Self::load_shaders(&mut context);
         Self::load_fonts(&mut context);
         Self::load_textures(&mut context);
-        Self::load_sounds_and_music();
+        Self::load_sounds_and_music(&mut context);
         Self::setup_gui_inputs(&mut context);
 
         *context.state_change = GameStateChange::Swap(Box::new(MainMenu));
@@ -52,70 +54,62 @@ impl GameState for Preloader {
 
 impl Preloader {
     fn load_shaders(context: &mut GameContext) {
-        load_shader(
-            context.draw,
-            context.graphics,
-            "color",
-            Shader::COLORED_VERTEX_2D,
-            Shader::PASS_FRAGMENT,
-        );
-        load_shader(
-            context.draw,
-            context.graphics,
-            "image",
-            Shader::TEXTURED_VERTEX_2D,
-            Shader::TEXTURED_FRAGMENT,
-        );
-        load_shader(
-            context.draw,
-            context.graphics,
-            "text",
-            Shader::TEXT_VERTEX,
-            Shader::TEXT_FRAGMENT,
-        );
-        load_shader(
-            context.draw,
-            context.graphics,
-            "character",
-            Shader::TEXTURED_VERTEX_2D,
-            include_str!("../../../assets/shaders/character.glsl"),
-        );
-        load_shader(
-            context.draw,
-            context.graphics,
-            "sphere-light",
-            Shader::TEXTURED_VERTEX_2D,
-            include_str!("../../../assets/shaders/sphere_light.glsl"),
-        );
-        load_shader(
-            context.draw,
-            context.graphics,
-            "lighting",
-            Shader::TEXTURED_VERTEX_2D,
-            include_str!("../../../assets/shaders/lighting.glsl"),
-        );
+        context
+            .assets
+            .spawn(
+                "shader://color",
+                (ShaderAsset::new(
+                    Shader::COLORED_VERTEX_2D,
+                    Shader::PASS_FRAGMENT,
+                ),),
+            )
+            .unwrap();
+        context
+            .assets
+            .spawn(
+                "shader://image",
+                (ShaderAsset::new(
+                    Shader::TEXTURED_VERTEX_2D,
+                    Shader::TEXTURED_FRAGMENT,
+                ),),
+            )
+            .unwrap();
+        context
+            .assets
+            .spawn(
+                "shader://text",
+                (ShaderAsset::new(Shader::TEXT_VERTEX, Shader::TEXT_FRAGMENT),),
+            )
+            .unwrap();
+        context
+            .assets
+            .ensure("shader://shaders/character.glsl?as=character")
+            .unwrap();
+        context
+            .assets
+            .ensure("shader://shaders/sphere_light.glsl?as=sphere-light")
+            .unwrap();
+        context
+            .assets
+            .ensure("shader://shaders/lighting.glsl?as=lighting")
+            .unwrap();
     }
 
     fn load_fonts(context: &mut GameContext) {
-        load_font(
-            context.draw,
-            "roboto",
-            include_bytes!("../../../assets/fonts/Roboto-Regular.ttf"),
-        );
+        context
+            .assets
+            .ensure("font://fonts/roboto.ttf?as=roboto")
+            .unwrap();
     }
 
     fn load_textures(context: &mut GameContext) {
         // map
-        load_texture(
-            context.draw,
-            context.graphics,
-            "map/level-0",
-            include_bytes!("../../../assets/maps/world/simplified/Level_0/_composite.png"),
-            1,
-            1,
-        );
+        context
+            .assets
+            .ensure("texture://maps/world/simplified/Level_0/_composite.png?as=map/level-0")
+            .unwrap();
 
-        // player character
+        // // player character
         load_texture_series!(context, "player/idle", [1]);
         load_texture_series!(
             context,
@@ -134,149 +128,106 @@ impl Preloader {
         load_texture_series!(context, "enemy/attack", [1, 2, 3, 4, 5, 6, 7, 8]);
 
         // items
-        load_texture(
-            context.draw,
-            context.graphics,
-            "item/apple",
-            include_bytes!("../../../assets/images/item/apple.png"),
-            1,
-            1,
-        );
-        load_texture(
-            context.draw,
-            context.graphics,
-            "item/banana",
-            include_bytes!("../../../assets/images/item/banana.png"),
-            1,
-            1,
-        );
-        load_texture(
-            context.draw,
-            context.graphics,
-            "item/orange",
-            include_bytes!("../../../assets/images/item/orange.png"),
-            1,
-            1,
-        );
-        load_texture(
-            context.draw,
-            context.graphics,
-            "item/torch",
-            include_bytes!("../../../assets/images/item/torch.png"),
-            1,
-            1,
-        );
+        context
+            .assets
+            .ensure("texture://images/item/apple.png?as=item/apple")
+            .unwrap();
+        context
+            .assets
+            .ensure("texture://images/item/banana.png?as=item/banana")
+            .unwrap();
+        context
+            .assets
+            .ensure("texture://images/item/orange.png?as=item/orange")
+            .unwrap();
+        context
+            .assets
+            .ensure("texture://images/item/torch.png?as=item/torch")
+            .unwrap();
 
         // particles
-        load_texture(
-            context.draw,
-            context.graphics,
-            "particle/fire",
-            include_bytes!("../../../assets/images/particles/fire.png"),
-            1,
-            1,
-        );
+        context
+            .assets
+            .ensure("texture://images/particles/fire.png?as=particle/fire")
+            .unwrap();
 
         // ui
-        load_texture(
-            context.draw,
-            context.graphics,
-            "ui/panel",
-            include_bytes!("../../../assets/images/ui/panel.png"),
-            1,
-            1,
-        );
-        load_texture(
-            context.draw,
-            context.graphics,
-            "ui/bar",
-            include_bytes!("../../../assets/images/ui/bar.png"),
-            1,
-            1,
-        );
-        load_texture(
-            context.draw,
-            context.graphics,
-            "ui/button/idle",
-            include_bytes!("../../../assets/images/ui/button-idle.png"),
-            1,
-            1,
-        );
-        load_texture(
-            context.draw,
-            context.graphics,
-            "ui/button/select",
-            include_bytes!("../../../assets/images/ui/button-select.png"),
-            1,
-            1,
-        );
-        load_texture(
-            context.draw,
-            context.graphics,
-            "ui/button/trigger",
-            include_bytes!("../../../assets/images/ui/button-trigger.png"),
-            1,
-            1,
-        );
-        load_texture(
-            context.draw,
-            context.graphics,
-            "ui/cover",
-            include_bytes!("../../../assets/images/ui/cover.png"),
-            1,
-            1,
-        );
-        load_texture(
-            context.draw,
-            context.graphics,
-            "ui/won",
-            include_bytes!("../../../assets/images/ui/won.png"),
-            1,
-            1,
-        );
-        load_texture(
-            context.draw,
-            context.graphics,
-            "ui/lost",
-            include_bytes!("../../../assets/images/ui/lost.png"),
-            1,
-            1,
-        );
+        context
+            .assets
+            .ensure("texture://images/ui/panel.png?as=ui/panel")
+            .unwrap();
+        context
+            .assets
+            .ensure("texture://images/ui/bar.png?as=ui/bar")
+            .unwrap();
+        context
+            .assets
+            .ensure("texture://images/ui/button-idle.png?as=ui/button/idle")
+            .unwrap();
+        context
+            .assets
+            .ensure("texture://images/ui/button-select.png?as=ui/button/select")
+            .unwrap();
+        context
+            .assets
+            .ensure("texture://images/ui/button-trigger.png?as=ui/button/trigger")
+            .unwrap();
+        context
+            .assets
+            .ensure("texture://images/ui/cover.png?as=ui/cover")
+            .unwrap();
+        context
+            .assets
+            .ensure("texture://images/ui/won.png?as=ui/won")
+            .unwrap();
+        context
+            .assets
+            .ensure("texture://images/ui/lost.png?as=ui/lost")
+            .unwrap();
     }
 
-    fn load_sounds_and_music() {
-        let mut audio = Audio::write();
-        let mut audio = audio.write().unwrap();
+    fn load_sounds_and_music(context: &mut GameContext) {
+        context
+            .assets
+            .ensure("sound://sounds/footstep-grass-1.ogg?as=footstep/grass/1")
+            .unwrap();
+        context
+            .assets
+            .ensure("sound://sounds/footstep-grass-2.ogg?as=footstep/grass/2")
+            .unwrap();
+        context
+            .assets
+            .ensure("sound://sounds/footstep-grass-3.ogg?as=footstep/grass/3")
+            .unwrap();
+        context
+            .assets
+            .ensure("sound://sounds/sword.ogg?as=sword")
+            .unwrap();
+        context
+            .assets
+            .ensure("sound://sounds/axe.ogg?as=axe")
+            .unwrap();
+        context
+            .assets
+            .ensure("sound://sounds/collect.ogg?as=collect")
+            .unwrap();
+        context
+            .assets
+            .ensure("sound://sounds/button-select.ogg?as=button/select")
+            .unwrap();
+        context
+            .assets
+            .ensure("sound://sounds/button-click.ogg?as=button/click")
+            .unwrap();
 
-        audio.register(
-            "footstep/grass/1",
-            include_bytes!("../../../assets/sounds/footstep-grass-1.ogg"),
-        );
-        audio.register(
-            "footstep/grass/2",
-            include_bytes!("../../../assets/sounds/footstep-grass-2.ogg"),
-        );
-        audio.register(
-            "footstep/grass/3",
-            include_bytes!("../../../assets/sounds/footstep-grass-3.ogg"),
-        );
-        audio.register("sword", include_bytes!("../../../assets/sounds/sword.ogg"));
-        audio.register("axe", include_bytes!("../../../assets/sounds/axe.ogg"));
-        audio.register(
-            "collect",
-            include_bytes!("../../../assets/sounds/collect.ogg"),
-        );
-        audio.register(
-            "button/select",
-            include_bytes!("../../../assets/sounds/button-select.ogg"),
-        );
-        audio.register(
-            "button/click",
-            include_bytes!("../../../assets/sounds/button-click.ogg"),
-        );
-
-        audio.register("forest", include_bytes!("../../../assets/music/forest.ogg"));
-        audio.register("battle", include_bytes!("../../../assets/music/battle.ogg"));
+        context
+            .assets
+            .ensure("sound://music/forest.ogg?as=forest")
+            .unwrap();
+        context
+            .assets
+            .ensure("sound://music/battle.ogg?as=battle")
+            .unwrap();
     }
 
     fn setup_gui_inputs(context: &mut GameContext) {

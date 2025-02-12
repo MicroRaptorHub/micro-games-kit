@@ -1,4 +1,7 @@
-use crate::game::{player::PlayerState, utils::audio::Audio};
+use crate::game::{
+    player::PlayerState,
+    utils::events::{Event, Events},
+};
 use micro_games_kit::{
     animation::{FrameAnimation, NamedAnimation},
     character::CharacterMemory,
@@ -46,16 +49,17 @@ impl Task<CharacterMemory<PlayerState>> for PlayerRunTask {
 
         let events = self.animation.animation.update(memory.delta_time);
         {
-            let mut audio = Audio::write();
-            let mut audio = audio.write().unwrap();
             for event in events {
                 if event == "footstep" {
-                    audio.play(match thread_rng().gen_range(1..=3) {
-                        1 => "footstep/grass/1",
-                        2 => "footstep/grass/2",
-                        3 => "footstep/grass/3",
-                        _ => unreachable!(),
-                    });
+                    Events::write(Event::PlaySound(
+                        match thread_rng().gen_range(1..=3) {
+                            1 => "footstep/grass/1",
+                            2 => "footstep/grass/2",
+                            3 => "footstep/grass/3",
+                            _ => unreachable!(),
+                        }
+                        .into(),
+                    ));
                 }
             }
         }

@@ -1,6 +1,6 @@
 use crate::game::{enemy::EnemyState, item::Item};
 use micro_games_kit::third_party::{typid::ID, vek::Vec2};
-use std::cell::RefCell;
+use std::{borrow::Cow, cell::RefCell};
 
 thread_local! {
     static PENDING: RefCell<Vec<Event>> = Default::default();
@@ -29,6 +29,7 @@ pub enum Event {
         instigator: Instigator,
     },
     WinGame,
+    PlaySound(Cow<'static, str>),
 }
 
 #[derive(Default)]

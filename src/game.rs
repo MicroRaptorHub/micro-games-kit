@@ -1,8 +1,15 @@
-use crate::context::GameContext;
+use crate::{
+    assets::{
+        FontAssetSubsystem, ShaderAssetSubsystem, SoundAssetSubsystem, TextureAssetSubsystem,
+    },
+    audio::Audio,
+    context::GameContext,
+};
 #[cfg(not(target_arch = "wasm32"))]
 use glutin::{event::Event, window::Window};
 #[cfg(target_arch = "wasm32")]
 use instant::Instant;
+use keket::database::AssetDatabase;
 use spitfire_draw::{
     context::DrawContext,
     utils::{ShaderRef, Vertex},
@@ -53,6 +60,10 @@ pub trait GameState {
     fn draw_gui(&mut self, context: GameContext) {}
 }
 
+pub trait GameSubsystem {
+    fn run(&mut self, context: GameContext, delta_time: f32);
+}
+
 pub struct GameInstance {
     pub fixed_delta_time: f32,
     pub color_shader: &'static str,
@@ -62,10 +73,13 @@ pub struct GameInstance {
     draw: DrawContext,
     gui: GuiContext,
     input: InputContext,
+    assets: AssetDatabase,
+    audio: Audio,
     timer: Instant,
     fixed_timer: Instant,
     states: Vec<Box<dyn GameState>>,
     state_change: GameStateChange,
+    subsystems: Vec<Box<dyn GameSubsystem>>,
 }
 
 impl Default for GameInstance {
@@ -79,10 +93,18 @@ impl Default for GameInstance {
             draw: Default::default(),
             gui: Default::default(),
             input: Default::default(),
+            assets: Default::default(),
+            audio: Default::default(),
             timer: Instant::now(),
             fixed_timer: Instant::now(),
             states: Default::default(),
             state_change: Default::default(),
+            subsystems: vec![
+                Box::new(ShaderAssetSubsystem),
+                Box::new(TextureAssetSubsystem),
+                Box::new(FontAssetSubsystem),
+                Box::new(SoundAssetSubsystem),
+            ],
         }
     }
 }
@@ -125,6 +147,16 @@ impl GameInstance {
         self
     }
 
+    pub fn with_subsystem(mut self, subsystem: impl GameSubsystem + 'static) -> Self {
+        self.subsystems.push(Box::new(subsystem));
+        self
+    }
+
+    pub fn setup_assets(mut self, f: impl FnOnce(&mut AssetDatabase)) -> Self {
+        f(&mut self.assets);
+        self
+    }
+
     pub fn fps(&self) -> usize {
         (1.0 / self.fixed_delta_time).ceil() as usize
     }
@@ -135,6 +167,23 @@ impl GameInstance {
 
     pub fn process_frame(&mut self, graphics: &mut Graphics<Vertex>) {
         let delta_time = self.timer.elapsed().as_secs_f32();
+
+        for subsystem in &mut self.subsystems {
+            subsystem.run(
+                GameContext {
+                    graphics,
+                    draw: &mut self.draw,
+                    gui: &mut self.gui,
+                    input: &mut self.input,
+                    state_change: &mut self.state_change,
+                    assets: &mut self.assets,
+                    audio: &mut self.audio,
+                },
+                delta_time,
+            );
+        }
+        self.assets.maintain().unwrap();
+
         if let Some(state) = self.states.last_mut() {
             self.timer = Instant::now();
             state.update(
@@ -144,6 +193,8 @@ impl GameInstance {
                     gui: &mut self.gui,
                     input: &mut self.input,
                     state_change: &mut self.state_change,
+                    assets: &mut self.assets,
+                    audio: &mut self.audio,
                 },
                 delta_time,
             );
@@ -160,6 +211,8 @@ impl GameInstance {
                         gui: &mut self.gui,
                         input: &mut self.input,
                         state_change: &mut self.state_change,
+                        assets: &mut self.assets,
+                        audio: &mut self.audio,
                     },
                     fixed_delta_time,
                 );
@@ -179,6 +232,8 @@ impl GameInstance {
                 gui: &mut self.gui,
                 input: &mut self.input,
                 state_change: &mut self.state_change,
+                assets: &mut self.assets,
+                audio: &mut self.audio,
             });
         }
         self.gui.begin_frame();
@@ -189,6 +244,8 @@ impl GameInstance {
                 gui: &mut self.gui,
                 input: &mut self.input,
                 state_change: &mut self.state_change,
+                assets: &mut self.assets,
+                audio: &mut self.audio,
             });
         }
         self.gui.end_frame(
@@ -213,6 +270,8 @@ impl GameInstance {
                         gui: &mut self.gui,
                         input: &mut self.input,
                         state_change: &mut self.state_change,
+                        assets: &mut self.assets,
+                        audio: &mut self.audio,
                     });
                 }
                 state.enter(GameContext {
@@ -221,6 +280,8 @@ impl GameInstance {
                     gui: &mut self.gui,
                     input: &mut self.input,
                     state_change: &mut self.state_change,
+                    assets: &mut self.assets,
+                    audio: &mut self.audio,
                 });
                 self.states.push(state);
                 self.timer = Instant::now();
@@ -232,6 +293,8 @@ impl GameInstance {
                     gui: &mut self.gui,
                     input: &mut self.input,
                     state_change: &mut self.state_change,
+                    assets: &mut self.assets,
+                    audio: &mut self.audio,
                 });
                 self.states.push(state);
                 self.timer = Instant::now();
@@ -244,6 +307,8 @@ impl GameInstance {
                         gui: &mut self.gui,
                         input: &mut self.input,
                         state_change: &mut self.state_change,
+                        assets: &mut self.assets,
+                        audio: &mut self.audio,
                     });
                 }
                 self.timer = Instant::now();

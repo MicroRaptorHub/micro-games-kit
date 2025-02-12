@@ -10,7 +10,6 @@ use crate::game::{
     torch::Torch,
     ui::{health_bar::health_bar, world_to_screen_content_layout},
     utils::{
-        audio::Audio,
         events::{Event, Events},
         space::{Space, SpaceObject, SpaceObjectId},
     },
@@ -53,24 +52,13 @@ pub struct Gameplay {
     exit: InputActionRef,
     exit_handle: Option<ID<InputMapping>>,
     map_radius: f32,
-    music_forest: StaticSoundHandle,
-    music_battle: StaticSoundHandle,
+    music_forest: Option<StaticSoundHandle>,
+    music_battle: Option<StaticSoundHandle>,
     gamepads: GamepadManager,
 }
 
 impl Default for Gameplay {
     fn default() -> Self {
-        let mut audio = Audio::write();
-        let mut audio = audio.write().unwrap();
-
-        let mut music_forest = audio.play("forest").unwrap();
-        music_forest.set_volume(0.0, Default::default());
-        music_forest.set_loop_region(..);
-
-        let mut music_battle = audio.play("battle").unwrap();
-        music_battle.set_volume(0.0, Default::default());
-        music_battle.set_loop_region(..);
-
         let gamepads = GamepadManager::default();
 
         Self {
@@ -88,8 +76,8 @@ impl Default for Gameplay {
             exit: Default::default(),
             exit_handle: None,
             map_radius: 800.0,
-            music_forest,
-            music_battle,
+            music_forest: None,
+            music_battle: None,
             gamepads,
         }
     }
@@ -101,6 +89,20 @@ impl GameState for Gameplay {
         context.graphics.main_camera.screen_alignment = 0.5.into();
         context.graphics.main_camera.scaling = CameraScaling::FitVertical(512.0);
         context.gui.coords_map_scaling = CoordsMappingScaling::FitVertical(1024.0);
+
+        self.music_forest = {
+            let mut handle = context.audio.play("forest").unwrap();
+            handle.set_volume(0.0, Default::default());
+            handle.set_loop_region(..);
+            Some(handle)
+        };
+
+        self.music_battle = {
+            let mut handle = context.audio.play("battle").unwrap();
+            handle.set_volume(0.0, Default::default());
+            handle.set_loop_region(..);
+            Some(handle)
+        };
 
         self.exit_handle = Some(context.input.push_mapping(
             InputMapping::default().consume(InputConsume::Hit).action(
@@ -151,8 +153,12 @@ impl GameState for Gameplay {
             self.exit_handle = None;
         }
 
-        self.music_forest.stop(Default::default());
-        self.music_battle.stop(Default::default());
+        if let Some(handle) = self.music_forest.as_mut() {
+            handle.stop(Default::default());
+        }
+        if let Some(handle) = self.music_battle.as_mut() {
+            handle.stop(Default::default());
+        }
     }
 
     fn fixed_update(&mut self, mut context: GameContext, delta_time: f32) {
@@ -373,6 +379,9 @@ impl Gameplay {
                         *context.state_change =
                             GameStateChange::Swap(Box::new(GameEnd::new(GameEndReason::Won)));
                     }
+                    Event::PlaySound(id) => {
+                        context.audio.play(id.as_ref());
+                    }
                     _ => {}
                 }
             }
@@ -407,10 +416,12 @@ impl Gameplay {
             .unwrap_or(f32::INFINITY)
             .min(300.0) as f64
             / 300.0;
-        self.music_forest
-            .set_volume(factor * 2.0, Default::default());
-        self.music_battle
-            .set_volume((1.0 - factor) * 2.0, Default::default());
+        if let Some(handle) = self.music_forest.as_mut() {
+            handle.set_volume(factor * 2.0, Default::default());
+        }
+        if let Some(handle) = self.music_battle.as_mut() {
+            handle.set_volume((1.0 - factor) * 2.0, Default::default());
+        }
     }
 
     fn resolve_collisions(&mut self) {
@@ -425,7 +436,7 @@ impl Gameplay {
                             SpaceObjectId::Player => {
                                 self.player.state.write().unwrap().consume_item(item);
                                 Events::write(Event::KillItem { id: item_id });
-                                let _ = Audio::write().write().unwrap().play("collect");
+                                Events::write(Event::PlaySound("collect".into()));
                             }
                             SpaceObjectId::Enemy(enemy_id) => {
                                 if let Some(enemy) = self.enemies.get_mut(&enemy_id) {

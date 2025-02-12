@@ -1,8 +1,8 @@
 use micro_games_kit::{
+    assets::{make_directory_database, ShaderAsset},
     config::Config,
     context::GameContext,
     game::{GameInstance, GameState},
-    loader::load_shader,
     third_party::{
         anim8::{spline::Spline, utils::factor_iter},
         spitfire_draw::{
@@ -61,13 +61,16 @@ impl GameState for State {
                 .axis(VirtualAxis::MousePositionY, pointer_y),
         );
 
-        load_shader(
-            context.draw,
-            context.graphics,
-            "color",
-            Shader::COLORED_VERTEX_2D,
-            Shader::PASS_FRAGMENT,
-        );
+        context
+            .assets
+            .spawn(
+                "shader://color",
+                (ShaderAsset::new(
+                    Shader::COLORED_VERTEX_2D,
+                    Shader::PASS_FRAGMENT,
+                ),),
+            )
+            .unwrap();
     }
 
     fn draw(&mut self, context: GameContext) {
@@ -120,9 +123,11 @@ impl GameState for State {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    GameLauncher::new(GameInstance::new(State::default()))
-        .title("Path")
-        .config(Config::load_from_file("./resources/GameConfig.toml")?)
-        .run();
+    GameLauncher::new(GameInstance::new(State::default()).setup_assets(|assets| {
+        *assets = make_directory_database("./resources/").unwrap();
+    }))
+    .title("Path")
+    .config(Config::load_from_file("./resources/GameConfig.toml")?)
+    .run();
     Ok(())
 }

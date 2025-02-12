@@ -1,4 +1,3 @@
-use crate::game::utils::audio::Audio;
 use micro_games_kit::third_party::{
     raui_core::props::Props,
     raui_immediate_widgets::{
@@ -9,6 +8,8 @@ use micro_games_kit::third_party::{
         material::{interactive::button_paper, text_paper, TextPaperProps},
     },
 };
+
+use crate::game::utils::events::{Event, Events};
 
 pub fn text_button(props: impl Into<Props>, message: impl ToString) -> ImmediateButton {
     let result = button_paper(props.into().with(NavItemActive), |_| {
@@ -26,10 +27,10 @@ pub fn text_button(props: impl Into<Props>, message: impl ToString) -> Immediate
         ));
     });
     if result.select_start() {
-        let _ = Audio::write().write().unwrap().play("button/select");
+        Events::write(Event::PlaySound("button/select".into()));
     }
     if result.trigger_start() {
-        let _ = Audio::write().write().unwrap().play("button/click");
+        Events::write(Event::PlaySound("button/click".into()));
     }
     result
 }

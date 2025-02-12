@@ -1,7 +1,7 @@
 use micro_games_kit::{
+    assets::ShaderAsset,
     context::GameContext,
     game::{GameState, GameStateChange},
-    loader::{load_font, load_shader, load_texture},
     third_party::{
         raui_core::layout::CoordsMappingScaling,
         raui_immediate_widgets::core::{
@@ -37,7 +37,7 @@ impl Default for Gameplay {
         Self {
             ferris: Sprite::single(SpriteTexture {
                 sampler: "u_image".into(),
-                texture: TextureRef::name("ferris"),
+                texture: TextureRef::name("ferris.png"),
                 filtering: GlowTextureFiltering::Linear,
             })
             .pivot(0.5.into()),
@@ -54,42 +54,37 @@ impl GameState for Gameplay {
         context.graphics.main_camera.scaling = CameraScaling::FitVertical(500.0);
         context.gui.coords_map_scaling = CoordsMappingScaling::FitVertical(500.0);
 
-        load_shader(
-            context.draw,
-            context.graphics,
-            "color",
-            Shader::COLORED_VERTEX_2D,
-            Shader::PASS_FRAGMENT,
-        );
-        load_shader(
-            context.draw,
-            context.graphics,
-            "image",
-            Shader::TEXTURED_VERTEX_2D,
-            Shader::TEXTURED_FRAGMENT,
-        );
-        load_shader(
-            context.draw,
-            context.graphics,
-            "text",
-            Shader::TEXT_VERTEX,
-            Shader::TEXT_FRAGMENT,
-        );
+        context
+            .assets
+            .spawn(
+                "shader://color",
+                (ShaderAsset::new(
+                    Shader::COLORED_VERTEX_2D,
+                    Shader::PASS_FRAGMENT,
+                ),),
+            )
+            .unwrap();
+        context
+            .assets
+            .spawn(
+                "shader://image",
+                (ShaderAsset::new(
+                    Shader::TEXTURED_VERTEX_2D,
+                    Shader::TEXTURED_FRAGMENT,
+                ),),
+            )
+            .unwrap();
+        context
+            .assets
+            .spawn(
+                "shader://text",
+                (ShaderAsset::new(Shader::TEXT_VERTEX, Shader::TEXT_FRAGMENT),),
+            )
+            .unwrap();
 
-        load_texture(
-            context.draw,
-            context.graphics,
-            "ferris",
-            include_bytes!("../../../assets/ferris.png"),
-            1,
-            1,
-        );
+        context.assets.ensure("texture://ferris.png").unwrap();
 
-        load_font(
-            context.draw,
-            "roboto",
-            include_bytes!("../../../assets/Roboto-Regular.ttf"),
-        );
+        context.assets.ensure("font://roboto.ttf").unwrap();
 
         let move_left = InputActionRef::default();
         let move_right = InputActionRef::default();
@@ -151,7 +146,7 @@ impl GameState for Gameplay {
             horizontal_align: TextBoxHorizontalAlign::Center,
             vertical_align: TextBoxVerticalAlign::Bottom,
             font: TextBoxFont {
-                name: "roboto".to_owned(),
+                name: "roboto.ttf".to_owned(),
                 size: 50.0,
             },
             color: Color {

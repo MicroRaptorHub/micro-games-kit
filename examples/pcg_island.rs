@@ -1,9 +1,9 @@
 use micro_games_kit::{
+    assets::{make_directory_database, ShaderAsset},
     config::Config,
     context::GameContext,
     game::{GameInstance, GameState},
     grid_world::{GridWorld, GridWorldLayer},
-    loader::{load_font, load_shader},
     pcg::{Grid, NoiseGenerator, RemapGenerator, SubGenerator},
     third_party::{
         noise::{Fbm, MultiFractal, NoiseFn, SuperSimplex},
@@ -155,26 +155,25 @@ impl GameState for State {
     fn enter(&mut self, context: GameContext) {
         context.graphics.main_camera.scaling = CameraScaling::FitVertical(SIZE as f32 * 10.0);
 
-        load_shader(
-            context.draw,
-            context.graphics,
-            "color",
-            Shader::COLORED_VERTEX_2D,
-            Shader::PASS_FRAGMENT,
-        );
-        load_shader(
-            context.draw,
-            context.graphics,
-            "text",
-            Shader::TEXT_VERTEX,
-            Shader::TEXT_FRAGMENT,
-        );
+        context
+            .assets
+            .spawn(
+                "shader://color",
+                (ShaderAsset::new(
+                    Shader::COLORED_VERTEX_2D,
+                    Shader::PASS_FRAGMENT,
+                ),),
+            )
+            .unwrap();
+        context
+            .assets
+            .spawn(
+                "shader://text",
+                (ShaderAsset::new(Shader::TEXT_VERTEX, Shader::TEXT_FRAGMENT),),
+            )
+            .unwrap();
 
-        load_font(
-            context.draw,
-            "roboto",
-            include_bytes!("../resources/Roboto-Regular.ttf"),
-        );
+        context.assets.ensure("font://roboto.ttf").unwrap();
 
         let mouse_x = InputAxisRef::default();
         let mouse_y = InputAxisRef::default();
@@ -243,7 +242,7 @@ impl GameState for State {
             ),
             horizontal_align: TextBoxHorizontalAlign::Right,
             font: TextBoxFont {
-                name: "roboto".to_owned(),
+                name: "roboto.ttf".to_owned(),
                 size: 32.0,
             },
             ..Default::default()
@@ -275,9 +274,11 @@ fn remap<T: Copy + Sub<Output = T> + Div<Output = T> + Add<Output = T> + Mul<Out
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    GameLauncher::new(GameInstance::new(State::default()))
-        .title("Procedural Content Generator - Island")
-        .config(Config::load_from_file("./resources/GameConfig.toml")?)
-        .run();
+    GameLauncher::new(GameInstance::new(State::default()).setup_assets(|assets| {
+        *assets = make_directory_database("./resources/").unwrap();
+    }))
+    .title("Procedural Content Generator - Island")
+    .config(Config::load_from_file("./resources/GameConfig.toml")?)
+    .run();
     Ok(())
 }
