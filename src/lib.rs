@@ -47,7 +47,6 @@ pub mod context;
 pub mod game;
 pub mod gamepad;
 pub mod grid_world;
-pub mod nodes;
 pub mod pcg;
 pub mod scripting;
 pub mod tag;
