@@ -22,7 +22,7 @@ run-desktop:
 
 run-web:
     just build web
-    http
+    simple-http-server
 
 clippy:
     cargo clippy
@@ -32,7 +32,8 @@ test:
 
 checks:
     just format
-    just build
+    just build desktop
+    just build web
     just clippy
     just test
 

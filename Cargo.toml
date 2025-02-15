@@ -3,7 +3,7 @@ members = ["templates/*"]
 
 [package]
 name = "micro-games-kit"
-version = "0.30.0"
+version = "0.31.0"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Micro Games Kit"
@@ -28,7 +28,7 @@ intuicio-data = "0.44"
 intuicio-core = "0.44"
 intuicio-derive = "0.44"
 intuicio-backend-vm = "0.44"
-intuicio-frontend-simpleton = "0.44"
+intuicio-frontend-simpleton = { version = "0.44", default-features = false }
 anput = "0.10"
 nodio = "0.1"
 keket = "0.12"
@@ -47,7 +47,7 @@ gilrs = "0.11"
 anim8 = "1.1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-winit = "0.30"
+winit = "0.28"
 instant = { version = "0.1", features = ["wasm-bindgen"] }
 getrandom = { version = "0.2", features = ["js"] }
 

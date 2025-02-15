@@ -118,9 +118,9 @@ impl AssetPackage {
 
     pub fn decode(bytes: &[u8]) -> Result<Self, Box<dyn Error>> {
         let mut stream = Cursor::new(bytes);
-        let mut size = 0usize.to_be_bytes();
+        let mut size = 0u32.to_be_bytes();
         stream.read_exact(&mut size)?;
-        let size = usize::from_be_bytes(size);
+        let size = u32::from_be_bytes(size) as usize;
         let mut registry = vec![0u8; size];
         stream.read_exact(&mut registry)?;
         let registry = toml::from_str(str::from_utf8(&registry)?)?;
@@ -133,7 +133,7 @@ impl AssetPackage {
         let mut stream = Cursor::new(Vec::default());
         let registry = toml::to_string(&self.registry)?;
         let registry = registry.as_bytes();
-        stream.write_all(&registry.len().to_be_bytes())?;
+        stream.write_all(&(registry.len() as u32).to_be_bytes())?;
         stream.write_all(registry)?;
         stream.write_all(&self.content)?;
         Ok(stream.into_inner())

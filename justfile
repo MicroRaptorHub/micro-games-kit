@@ -8,8 +8,11 @@ format:
 build:
     cargo build
 
-run NAME="top-down":
-    cd ./templates/{{NAME}} && just run
+build-wasm:
+    cargo build --target wasm32-unknown-unknown
+
+run NAME="top-down" PLATFORM="desktop":
+    cd ./templates/{{NAME}} && just run {{PLATFORM}}
 
 clippy:
     cargo clippy
@@ -20,6 +23,7 @@ test:
 checks:
     just format
     just build
+    just build-wasm
     just clippy
     just test
     cd ./templates/fresh-start && just checks
