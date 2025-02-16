@@ -14,6 +14,7 @@ pub mod third_party {
     pub use intuicio_data;
     pub use intuicio_derive;
     pub use intuicio_frontend_simpleton;
+    pub use keket;
     pub use kira;
     pub use nodio;
     pub use noise;
