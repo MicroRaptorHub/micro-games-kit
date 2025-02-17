@@ -3,6 +3,7 @@ pub mod third_party {
     pub use anput;
     pub use emergent;
     pub use fontdue;
+    pub use getrandom;
     pub use gilrs;
     #[cfg(not(target_arch = "wasm32"))]
     pub use glutin as windowing;
