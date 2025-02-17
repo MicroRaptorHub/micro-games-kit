@@ -14,3 +14,17 @@ pub struct GameContext<'a> {
     pub assets: &'a mut AssetDatabase,
     pub audio: &'a mut Audio,
 }
+
+impl<'a> GameContext<'a> {
+    pub fn fork(&'a mut self) -> Self {
+        Self {
+            graphics: self.graphics,
+            draw: self.draw,
+            gui: self.gui,
+            input: self.input,
+            state_change: self.state_change,
+            assets: self.assets,
+            audio: self.audio,
+        }
+    }
+}
