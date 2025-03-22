@@ -1,4 +1,4 @@
-use crate::game::GameSubsystem;
+use crate::{context::GameContext, game::GameSubsystem};
 use anput::world::World;
 use core::str;
 use fontdue::Font;
@@ -189,7 +189,7 @@ impl ShaderAsset {
 pub struct ShaderAssetSubsystem;
 
 impl GameSubsystem for ShaderAssetSubsystem {
-    fn run(&mut self, context: crate::context::GameContext, _: f32) {
+    fn run(&mut self, context: GameContext, _: f32) {
         for entity in context.assets.storage.added().iter_of::<ShaderAsset>() {
             if let Some((path, asset)) = context
                 .assets
@@ -284,7 +284,7 @@ pub struct TextureAsset {
 pub struct TextureAssetSubsystem;
 
 impl GameSubsystem for TextureAssetSubsystem {
-    fn run(&mut self, context: crate::context::GameContext, _: f32) {
+    fn run(&mut self, context: GameContext, _: f32) {
         for entity in context.assets.storage.added().iter_of::<TextureAsset>() {
             if let Some((path, asset)) = context
                 .assets
@@ -377,7 +377,7 @@ pub struct FontAsset {
 pub struct FontAssetSubsystem;
 
 impl GameSubsystem for FontAssetSubsystem {
-    fn run(&mut self, context: crate::context::GameContext, _: f32) {
+    fn run(&mut self, context: GameContext, _: f32) {
         for entity in context.assets.storage.added().iter_of::<FontAsset>() {
             if let Some((path, asset)) = context
                 .assets
@@ -433,7 +433,7 @@ pub struct SoundAsset {
 pub struct SoundAssetSubsystem;
 
 impl GameSubsystem for SoundAssetSubsystem {
-    fn run(&mut self, context: crate::context::GameContext, _: f32) {
+    fn run(&mut self, context: GameContext, _: f32) {
         for entity in context.assets.storage.added().iter_of::<SoundAsset>() {
             if let Some((path, asset)) = context
                 .assets
