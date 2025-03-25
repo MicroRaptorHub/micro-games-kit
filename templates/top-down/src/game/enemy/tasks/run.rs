@@ -1,5 +1,5 @@
 use micro_games_kit::{
-    animation::{FrameAnimation, NamedAnimation},
+    animation::frame::{FrameAnimation, NamedAnimation},
     character::CharacterMemory,
     third_party::{
         emergent::task::Task,

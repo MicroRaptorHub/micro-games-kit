@@ -1,6 +1,6 @@
 use super::main_menu::MainMenu;
 use micro_games_kit::{
-    assets::ShaderAsset,
+    assets::shader::ShaderAsset,
     context::GameContext,
     game::{GameState, GameStateChange},
     third_party::{

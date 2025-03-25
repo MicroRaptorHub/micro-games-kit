@@ -16,7 +16,7 @@ use super::{
     utils::events::{Event, Events, Instigator},
 };
 use micro_games_kit::{
-    animation::NamedAnimation,
+    animation::frame::NamedAnimation,
     character::{Character, CharacterController},
     context::GameContext,
     game::GameObject,

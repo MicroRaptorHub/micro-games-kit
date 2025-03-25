@@ -1,6 +1,6 @@
 use intuicio_frontend_simpleton::Real;
 use micro_games_kit::{
-    assets::{make_directory_database, ShaderAsset},
+    assets::{make_directory_database, shader::ShaderAsset},
     config::Config,
     context::GameContext,
     game::{GameInstance, GameState, GameStateChange},

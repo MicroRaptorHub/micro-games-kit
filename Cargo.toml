@@ -3,7 +3,7 @@ members = ["templates/*"]
 
 [package]
 name = "micro-games-kit"
-version = "0.31.4"
+version = "0.32.0"
 edition = "2021"
 authors = ["Patryk 'PsichiX' Budzynski <psichix@gmail.com>"]
 description = "Micro Games Kit"
@@ -15,12 +15,12 @@ readme = "README.md"
 exclude = ["resources/", "templates/"]
 
 [dependencies]
-spitfire-core = "0.29"
-spitfire-glow = "0.29"
-spitfire-fontdue = "0.29"
-spitfire-draw = "0.29"
-spitfire-input = "0.29"
-spitfire-gui = "0.29"
+spitfire-core = "0.30"
+spitfire-glow = "0.30"
+spitfire-fontdue = "0.30"
+spitfire-draw = "0.30"
+spitfire-input = "0.30"
+spitfire-gui = "0.30"
 raui-core = "0.65"
 raui-immediate = "0.65"
 raui-immediate-widgets = "0.65"
@@ -38,6 +38,7 @@ image = "0.25"
 fontdue = "0.9"
 vek = "0.17"
 serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
 toml = "0.8"
 noise = "0.9"
 rand = "0.8"

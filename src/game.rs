@@ -1,6 +1,7 @@
 use crate::{
     assets::{
-        FontAssetSubsystem, ShaderAssetSubsystem, SoundAssetSubsystem, TextureAssetSubsystem,
+        font::FontAssetSubsystem, shader::ShaderAssetSubsystem, sound::SoundAssetSubsystem,
+        texture::TextureAssetSubsystem,
     },
     audio::Audio,
     context::GameContext,
