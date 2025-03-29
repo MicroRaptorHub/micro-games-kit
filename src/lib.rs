@@ -24,6 +24,7 @@ pub mod third_party {
     pub use raui_immediate;
     pub use raui_immediate_widgets;
     pub use rstar;
+    pub use rusty_spine;
     pub use serde;
     pub use spitfire_core;
     pub use spitfire_draw;

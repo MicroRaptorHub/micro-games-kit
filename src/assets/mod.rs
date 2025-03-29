@@ -1,4 +1,3 @@
-pub mod atlas;
 pub mod font;
 pub mod shader;
 pub mod sound;
@@ -6,8 +5,8 @@ pub mod spine;
 pub mod texture;
 
 use crate::assets::{
-    atlas::AtlasAssetProtocol, font::FontAssetProtocol, shader::ShaderAssetProtocol,
-    sound::SoundAssetProtocol, spine::SpineAssetProtocol, texture::TextureAssetProtocol,
+    font::FontAssetProtocol, shader::ShaderAssetProtocol, sound::SoundAssetProtocol,
+    spine::SpineAssetProtocol, texture::TextureAssetProtocol,
 };
 use keket::{
     database::{path::AssetPath, AssetDatabase},
@@ -42,7 +41,6 @@ pub fn make_database(fetch: impl AssetFetch) -> AssetDatabase {
         .with_protocol(TextureAssetProtocol)
         .with_protocol(FontAssetProtocol)
         .with_protocol(SoundAssetProtocol)
-        .with_protocol(AtlasAssetProtocol)
         .with_protocol(SpineAssetProtocol)
         .with_fetch(fetch)
 }

@@ -1,8 +1,6 @@
 use micro_games_kit::{
-    animation::spine::{AnimationPlayer, Skeleton},
-    assets::{
-        atlas::AtlasAsset, make_directory_database, shader::ShaderAsset, spine::SpineDocument,
-    },
+    animation::spine::SpineSkeleton,
+    assets::{make_directory_database, shader::ShaderAsset, spine::SpineAsset},
     config::Config,
     context::GameContext,
     game::{GameInstance, GameState, GameStateChange},
@@ -51,9 +49,7 @@ impl GameState for Preloader {
             )
             .unwrap();
 
-        context.assets.ensure("spine://robot.json").unwrap();
-        context.assets.ensure("atlas://robot.atlas").unwrap();
-        context.assets.ensure("texture://robot.png").unwrap();
+        context.assets.ensure("spine://robot.zip").unwrap();
 
         *context.state_change = GameStateChange::Swap(Box::new(State::default()));
     }
@@ -61,34 +57,31 @@ impl GameState for Preloader {
 
 #[derive(Default)]
 struct State {
-    skeleton: Option<Skeleton>,
-    anim_player: Option<AnimationPlayer>,
+    skeleton: Option<SpineSkeleton>,
 }
 
 impl GameState for State {
     fn enter(&mut self, context: GameContext) {
-        let document = context.assets.find("spine://robot.json").unwrap();
-        let document = document.access::<&SpineDocument>(context.assets);
-        let atlas = context.assets.find("atlas://robot.atlas").unwrap();
-        let atlas = atlas.access::<&AtlasAsset>(context.assets);
+        let asset = context
+            .assets
+            .find("spine://robot.zip")
+            .unwrap()
+            .access::<&SpineAsset>(context.assets);
 
-        self.skeleton = Some(Skeleton::new(document, atlas, "default", "u_image").unwrap());
-        self.anim_player = Some(AnimationPlayer::new(document).looped().playing("idle"));
+        let skeleton = SpineSkeleton::new(asset);
+        skeleton.play_animation("idle", 0, 0.75, true).unwrap();
+        self.skeleton = Some(skeleton);
     }
 
     fn fixed_update(&mut self, _: GameContext, delta_time: f32) {
-        let Some(anim_player) = self.anim_player.as_mut() else {
+        let Some(skeleton) = self.skeleton.as_ref() else {
             return;
         };
-        let Some(skeleton) = self.skeleton.as_mut() else {
-            return;
-        };
-        anim_player.update(delta_time);
-        anim_player.apply_to_skeleton(skeleton);
+        skeleton.update(delta_time);
     }
 
     fn draw(&mut self, context: GameContext) {
-        let Some(skeleton) = self.skeleton.as_mut() else {
+        let Some(skeleton) = self.skeleton.as_ref() else {
             return;
         };
         skeleton.draw(context.draw, context.graphics);

@@ -1,8 +1,0 @@
-robot.png
-	size: 134, 68
-	filter: Linear, Linear
-	pma: true
-block
-	bounds: 2, 2, 64, 64
-smile
-	bounds: 68, 2, 64, 64
