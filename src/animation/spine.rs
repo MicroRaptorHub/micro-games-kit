@@ -328,12 +328,11 @@ pub struct LodSpineSkeleton {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum BudgetedSpineSkeletonLodSwitchStrategy {
-    #[default]
-    None,
-    ResetToPose,
-    TransferRootBoneTransform,
-    TransferAllBonesTransforms,
+pub struct BudgetedSpineSkeletonLodSwitchStrategy {
+    pub reset_to_pose: bool,
+    pub transfer_root_bone_transform: bool,
+    pub transfer_all_bones_transforms: bool,
+    pub synchronize_animations: bool,
 }
 
 #[derive(Debug, Default)]
@@ -378,60 +377,87 @@ impl BudgetedSpineSkeleton {
         if self.lod == lod || lod > self.lods.len() {
             return;
         }
-        match self.lod_switch_strategy {
-            BudgetedSpineSkeletonLodSwitchStrategy::None => {}
-            BudgetedSpineSkeletonLodSwitchStrategy::ResetToPose => {
-                let next = &self.lods[lod];
-                if let Ok(mut next_controller) = next.skeleton.controller.try_write() {
-                    next_controller
-                        .skeleton
-                        .update_world_transform(Physics::Pose);
-                }
-            }
-            BudgetedSpineSkeletonLodSwitchStrategy::TransferRootBoneTransform => {
-                let prev = &self.lods[self.lod];
-                let next = &self.lods[lod];
-                if let (Ok(prev_controller), Ok(mut next_controller)) = (
-                    prev.skeleton.controller.try_read(),
-                    next.skeleton.controller.try_write(),
-                ) {
-                    let prev_bone = prev_controller.skeleton.bone_root();
-                    let mut next_bone = next_controller.skeleton.bone_root_mut();
-                    next_bone.set_x(prev_bone.x());
-                    next_bone.set_y(prev_bone.y());
-                    next_bone.set_scale_x(prev_bone.scale_x());
-                    next_bone.set_scale_y(prev_bone.scale_y());
-                    next_bone.set_rotation(prev_bone.rotation());
-                    next_controller
-                        .skeleton
-                        .update_world_transform(Physics::None);
-                }
-            }
-            BudgetedSpineSkeletonLodSwitchStrategy::TransferAllBonesTransforms => {
-                let prev = &self.lods[self.lod];
-                let next = &self.lods[lod];
-                let prev_bone_names = prev.skeleton.bone_names();
-                let next_bone_names = next.skeleton.bone_names();
-                if let (Ok(prev_controller), Ok(mut next_controller)) = (
-                    prev.skeleton.controller.try_read(),
-                    next.skeleton.controller.try_write(),
-                ) {
-                    for bone_name in prev_bone_names.intersection(&next_bone_names) {
-                        if let (Some(prev_bone), Some(mut next_bone)) = (
-                            prev_controller.skeleton.find_bone(bone_name),
-                            next_controller.skeleton.find_bone_mut(bone_name),
-                        ) {
-                            next_bone.set_x(prev_bone.x());
-                            next_bone.set_y(prev_bone.y());
-                            next_bone.set_scale_x(prev_bone.scale_x());
-                            next_bone.set_scale_y(prev_bone.scale_y());
-                            next_bone.set_rotation(prev_bone.rotation());
-                        }
+        if self.lod_switch_strategy.synchronize_animations {
+            let prev = &self.lods[self.lod];
+            let next = &self.lods[lod];
+            if let (Ok(prev_controller), Ok(mut next_controller)) = (
+                prev.skeleton.controller.try_read(),
+                next.skeleton.controller.try_write(),
+            ) {
+                next_controller.animation_state.clear_tracks();
+                for (track_index, prev_track) in prev_controller
+                    .animation_state
+                    .tracks()
+                    .flatten()
+                    .enumerate()
+                {
+                    if let Ok(mut next_track) =
+                        next_controller.animation_state.set_animation_by_name(
+                            track_index,
+                            prev_track.animation().name(),
+                            prev_track.looping(),
+                        )
+                    {
+                        next_track.set_timescale(prev_track.timescale());
+                        next_track.set_looping(prev_track.looping());
+                        let track_time = next_track.animation().duration()
+                            * prev_track.track_time()
+                            / prev_track.animation().duration();
+                        next_track.set_track_time(track_time);
                     }
-                    next_controller
-                        .skeleton
-                        .update_world_transform(Physics::None);
                 }
+            }
+        }
+        if self.lod_switch_strategy.reset_to_pose {
+            let next = &self.lods[lod];
+            if let Ok(mut next_controller) = next.skeleton.controller.try_write() {
+                next_controller
+                    .skeleton
+                    .update_world_transform(Physics::Pose);
+            }
+        }
+        if self.lod_switch_strategy.transfer_all_bones_transforms {
+            let prev = &self.lods[self.lod];
+            let next = &self.lods[lod];
+            let prev_bone_names = prev.skeleton.bone_names();
+            let next_bone_names = next.skeleton.bone_names();
+            if let (Ok(prev_controller), Ok(mut next_controller)) = (
+                prev.skeleton.controller.try_read(),
+                next.skeleton.controller.try_write(),
+            ) {
+                for bone_name in prev_bone_names.intersection(&next_bone_names) {
+                    if let (Some(prev_bone), Some(mut next_bone)) = (
+                        prev_controller.skeleton.find_bone(bone_name),
+                        next_controller.skeleton.find_bone_mut(bone_name),
+                    ) {
+                        next_bone.set_x(prev_bone.x());
+                        next_bone.set_y(prev_bone.y());
+                        next_bone.set_scale_x(prev_bone.scale_x());
+                        next_bone.set_scale_y(prev_bone.scale_y());
+                        next_bone.set_rotation(prev_bone.rotation());
+                    }
+                }
+                next_controller
+                    .skeleton
+                    .update_world_transform(Physics::None);
+            }
+        } else if self.lod_switch_strategy.transfer_root_bone_transform {
+            let prev = &self.lods[self.lod];
+            let next = &self.lods[lod];
+            if let (Ok(prev_controller), Ok(mut next_controller)) = (
+                prev.skeleton.controller.try_read(),
+                next.skeleton.controller.try_write(),
+            ) {
+                let prev_bone = prev_controller.skeleton.bone_root();
+                let mut next_bone = next_controller.skeleton.bone_root_mut();
+                next_bone.set_x(prev_bone.x());
+                next_bone.set_y(prev_bone.y());
+                next_bone.set_scale_x(prev_bone.scale_x());
+                next_bone.set_scale_y(prev_bone.scale_y());
+                next_bone.set_rotation(prev_bone.rotation());
+                next_controller
+                    .skeleton
+                    .update_world_transform(Physics::None);
             }
         }
         self.lod = lod;

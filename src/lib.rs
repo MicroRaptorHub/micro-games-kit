@@ -39,6 +39,7 @@ pub mod third_party {
     pub use vek;
     #[cfg(target_arch = "wasm32")]
     pub use winit as windowing;
+    pub use zip;
 }
 
 pub mod animation;

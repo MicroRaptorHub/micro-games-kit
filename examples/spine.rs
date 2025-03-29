@@ -76,6 +76,7 @@ struct State {
 
 impl GameState for State {
     fn enter(&mut self, context: GameContext) {
+        // Load Spine skeleton LODs assets.
         let asset_lod0 = context
             .assets
             .find("spine://robot-lod0.zip")
@@ -87,25 +88,40 @@ impl GameState for State {
             .unwrap()
             .access::<&SpineAsset>(context.assets);
 
+        // Create Spine skeleton instances for each LOD.
         let lod0 = SpineSkeleton::new(asset_lod0);
+        // Since we start with LOD 0, we need to play animation on this LOD.
         lod0.play_animation("idle", 0, 0.75, true).unwrap();
         let lod1 = SpineSkeleton::new(asset_lod1);
-        lod1.play_animation("idle", 0, 0.75, true).unwrap();
+
+        // Create and setup budgeted Spine skeleton.
         self.skeleton = Some(
             BudgetedSpineSkeleton::default()
-                .lod_switch_strategy(
-                    BudgetedSpineSkeletonLodSwitchStrategy::TransferRootBoneTransform,
-                )
+                .lod_switch_strategy(BudgetedSpineSkeletonLodSwitchStrategy {
+                    // Since skeleton is playing animations, we need to transfer
+                    // just root bone transform to make new LOD be at the exact
+                    // place as old LOD was.
+                    transfer_root_bone_transform: true,
+                    // Make sure that when LODs are switched, same animation is
+                    // running on new LOD as it was on old LOD.
+                    synchronize_animations: true,
+                    ..Default::default()
+                })
+                // High quality skeleton with IK and physics animations.
                 .with_lod(LodSpineSkeleton {
                     skeleton: lod0,
                     refresh_delay: 0.0,
                 })
+                // Low quality skeleton with simple bone transform animations to
+                // make animation process faster.
                 .with_lod(LodSpineSkeleton {
                     skeleton: lod1,
-                    refresh_delay: 0.075,
+                    // We also run it at lower frequency.
+                    refresh_delay: 0.05,
                 }),
         );
 
+        // Setup inputs for moving the skeleton and switching LODs.
         let move_left = InputActionRef::default();
         let move_right = InputActionRef::default();
         let move_up = InputActionRef::default();
@@ -157,12 +173,15 @@ impl GameState for State {
         let Some(budgeted_skeleton) = self.skeleton.as_mut() else {
             return;
         };
+
+        // Switch LODs if user trigger input actions.
         if self.lod0.get().is_pressed() {
             budgeted_skeleton.set_lod(0);
         } else if self.lod1.get().is_pressed() {
             budgeted_skeleton.set_lod(1);
         }
 
+        // Update skeleton root bone transform based on user movement input.
         if let Some(skeleton) = budgeted_skeleton.lod_skeleton_mut() {
             let movement = Vec2::<f32>::from(self.movement.get());
             skeleton
@@ -172,6 +191,7 @@ impl GameState for State {
                     transform.position.y -= movement.y * SPEED * delta_time;
                 });
         };
+        // Update skeleton state based on its refresh frequency.
         budgeted_skeleton.try_refresh(delta_time);
     }
 
