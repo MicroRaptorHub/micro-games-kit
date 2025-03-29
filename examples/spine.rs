@@ -1,5 +1,9 @@
+use glutin::event::VirtualKeyCode;
 use micro_games_kit::{
-    animation::spine::SpineSkeleton,
+    animation::spine::{
+        BudgetedSpineSkeleton, BudgetedSpineSkeletonLodSwitchStrategy, LodSpineSkeleton,
+        SpineSkeleton,
+    },
     assets::{make_directory_database, shader::ShaderAsset, spine::SpineAsset},
     config::Config,
     context::GameContext,
@@ -10,7 +14,13 @@ use micro_games_kit::{
     },
     GameLauncher,
 };
+use spitfire_input::{
+    CardinalInputCombinator, InputActionRef, InputConsume, InputMapping, VirtualAction,
+};
 use std::error::Error;
+use vek::Vec2;
+
+const SPEED: f32 = 200.0;
 
 #[derive(Default)]
 struct Preloader;
@@ -49,7 +59,8 @@ impl GameState for Preloader {
             )
             .unwrap();
 
-        context.assets.ensure("spine://robot.zip").unwrap();
+        context.assets.ensure("spine://robot-lod0.zip").unwrap();
+        context.assets.ensure("spine://robot-lod1.zip").unwrap();
 
         *context.state_change = GameStateChange::Swap(Box::new(State::default()));
     }
@@ -57,27 +68,111 @@ impl GameState for Preloader {
 
 #[derive(Default)]
 struct State {
-    skeleton: Option<SpineSkeleton>,
+    skeleton: Option<BudgetedSpineSkeleton>,
+    movement: CardinalInputCombinator,
+    lod0: InputActionRef,
+    lod1: InputActionRef,
 }
 
 impl GameState for State {
     fn enter(&mut self, context: GameContext) {
-        let asset = context
+        let asset_lod0 = context
             .assets
-            .find("spine://robot.zip")
+            .find("spine://robot-lod0.zip")
+            .unwrap()
+            .access::<&SpineAsset>(context.assets);
+        let asset_lod1 = context
+            .assets
+            .find("spine://robot-lod1.zip")
             .unwrap()
             .access::<&SpineAsset>(context.assets);
 
-        let skeleton = SpineSkeleton::new(asset);
-        skeleton.play_animation("idle", 0, 0.75, true).unwrap();
-        self.skeleton = Some(skeleton);
+        let lod0 = SpineSkeleton::new(asset_lod0);
+        lod0.play_animation("idle", 0, 0.75, true).unwrap();
+        let lod1 = SpineSkeleton::new(asset_lod1);
+        lod1.play_animation("idle", 0, 0.75, true).unwrap();
+        self.skeleton = Some(
+            BudgetedSpineSkeleton::default()
+                .lod_switch_strategy(
+                    BudgetedSpineSkeletonLodSwitchStrategy::TransferRootBoneTransform,
+                )
+                .with_lod(LodSpineSkeleton {
+                    skeleton: lod0,
+                    refresh_delay: 0.0,
+                })
+                .with_lod(LodSpineSkeleton {
+                    skeleton: lod1,
+                    refresh_delay: 0.075,
+                }),
+        );
+
+        let move_left = InputActionRef::default();
+        let move_right = InputActionRef::default();
+        let move_up = InputActionRef::default();
+        let move_down = InputActionRef::default();
+        self.lod0 = InputActionRef::default();
+        self.lod1 = InputActionRef::default();
+        self.movement = CardinalInputCombinator::new(
+            move_left.clone(),
+            move_right.clone(),
+            move_up.clone(),
+            move_down.clone(),
+        );
+        context.input.push_mapping(
+            InputMapping::default()
+                .consume(InputConsume::Hit)
+                .action(
+                    VirtualAction::KeyButton(VirtualKeyCode::A),
+                    move_left.clone(),
+                )
+                .action(
+                    VirtualAction::KeyButton(VirtualKeyCode::D),
+                    move_right.clone(),
+                )
+                .action(VirtualAction::KeyButton(VirtualKeyCode::W), move_up.clone())
+                .action(
+                    VirtualAction::KeyButton(VirtualKeyCode::S),
+                    move_down.clone(),
+                )
+                .action(VirtualAction::KeyButton(VirtualKeyCode::Left), move_left)
+                .action(VirtualAction::KeyButton(VirtualKeyCode::Right), move_right)
+                .action(VirtualAction::KeyButton(VirtualKeyCode::Up), move_up)
+                .action(VirtualAction::KeyButton(VirtualKeyCode::Down), move_down)
+                .action(
+                    VirtualAction::KeyButton(VirtualKeyCode::Key1),
+                    self.lod0.clone(),
+                )
+                .action(
+                    VirtualAction::KeyButton(VirtualKeyCode::Key2),
+                    self.lod1.clone(),
+                ),
+        );
+    }
+
+    fn exit(&mut self, context: GameContext) {
+        context.input.pop_mapping();
     }
 
     fn fixed_update(&mut self, _: GameContext, delta_time: f32) {
-        let Some(skeleton) = self.skeleton.as_ref() else {
+        let Some(budgeted_skeleton) = self.skeleton.as_mut() else {
             return;
         };
-        skeleton.update(delta_time);
+        if self.lod0.get().is_pressed() {
+            budgeted_skeleton.set_lod(0);
+        } else if self.lod1.get().is_pressed() {
+            budgeted_skeleton.set_lod(1);
+        }
+
+        if let Some(skeleton) = budgeted_skeleton.lod_skeleton_mut() {
+            let movement = Vec2::<f32>::from(self.movement.get());
+            skeleton
+                .skeleton
+                .update_transform(None, false, |transform| {
+                    transform.position.x += movement.x * SPEED * delta_time;
+                    transform.position.y -= movement.y * SPEED * delta_time;
+                });
+        };
+        budgeted_skeleton.try_refresh(delta_time);
     }
 
     fn draw(&mut self, context: GameContext) {
