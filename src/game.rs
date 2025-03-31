@@ -20,6 +20,11 @@ use spitfire_gui::context::GuiContext;
 use spitfire_input::InputContext;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
+use std::{
+    any::{Any, TypeId},
+    cell::{Ref, RefCell, RefMut},
+    collections::HashMap,
+};
 #[cfg(target_arch = "wasm32")]
 use winit::{event::Event, window::Window};
 
@@ -65,6 +70,36 @@ pub trait GameSubsystem {
     fn run(&mut self, context: GameContext, delta_time: f32);
 }
 
+#[derive(Default)]
+pub struct GameGlobals {
+    globals: HashMap<TypeId, RefCell<Box<dyn Any>>>,
+}
+
+impl GameGlobals {
+    pub fn set<T: 'static>(&mut self, value: T) {
+        self.globals
+            .insert(TypeId::of::<T>(), RefCell::new(Box::new(value)));
+    }
+
+    pub fn unset<T: 'static>(&mut self) {
+        self.globals.remove(&TypeId::of::<T>());
+    }
+
+    pub fn read<T: 'static>(&self) -> Option<Ref<T>> {
+        self.globals
+            .get(&TypeId::of::<T>())
+            .and_then(|v| v.try_borrow().ok())
+            .map(|v| Ref::map(v, |v| v.downcast_ref::<T>().unwrap()))
+    }
+
+    pub fn write<T: 'static>(&self) -> Option<RefMut<T>> {
+        self.globals
+            .get(&TypeId::of::<T>())
+            .and_then(|v| v.try_borrow_mut().ok())
+            .map(|v| RefMut::map(v, |v| v.downcast_mut::<T>().unwrap()))
+    }
+}
+
 pub struct GameInstance {
     pub fixed_delta_time: f32,
     pub color_shader: &'static str,
@@ -81,6 +116,7 @@ pub struct GameInstance {
     states: Vec<Box<dyn GameState>>,
     state_change: GameStateChange,
     subsystems: Vec<Box<dyn GameSubsystem>>,
+    globals: GameGlobals,
 }
 
 impl Default for GameInstance {
@@ -106,6 +142,7 @@ impl Default for GameInstance {
                 Box::new(FontAssetSubsystem),
                 Box::new(SoundAssetSubsystem),
             ],
+            globals: Default::default(),
         }
     }
 }
@@ -153,6 +190,11 @@ impl GameInstance {
         self
     }
 
+    pub fn with_globals<T: 'static>(mut self, value: T) -> Self {
+        self.globals.set(value);
+        self
+    }
+
     pub fn setup_assets(mut self, f: impl FnOnce(&mut AssetDatabase)) -> Self {
         f(&mut self.assets);
         self
@@ -179,6 +221,7 @@ impl GameInstance {
                     state_change: &mut self.state_change,
                     assets: &mut self.assets,
                     audio: &mut self.audio,
+                    globals: &mut self.globals,
                 },
                 delta_time,
             );
@@ -196,6 +239,7 @@ impl GameInstance {
                     state_change: &mut self.state_change,
                     assets: &mut self.assets,
                     audio: &mut self.audio,
+                    globals: &mut self.globals,
                 },
                 delta_time,
             );
@@ -214,6 +258,7 @@ impl GameInstance {
                         state_change: &mut self.state_change,
                         assets: &mut self.assets,
                         audio: &mut self.audio,
+                        globals: &mut self.globals,
                     },
                     fixed_delta_time,
                 );
@@ -235,6 +280,7 @@ impl GameInstance {
                 state_change: &mut self.state_change,
                 assets: &mut self.assets,
                 audio: &mut self.audio,
+                globals: &mut self.globals,
             });
         }
         self.gui.begin_frame();
@@ -247,6 +293,7 @@ impl GameInstance {
                 state_change: &mut self.state_change,
                 assets: &mut self.assets,
                 audio: &mut self.audio,
+                globals: &mut self.globals,
             });
         }
         self.gui.end_frame(
@@ -273,6 +320,7 @@ impl GameInstance {
                         state_change: &mut self.state_change,
                         assets: &mut self.assets,
                         audio: &mut self.audio,
+                        globals: &mut self.globals,
                     });
                 }
                 state.enter(GameContext {
@@ -283,6 +331,7 @@ impl GameInstance {
                     state_change: &mut self.state_change,
                     assets: &mut self.assets,
                     audio: &mut self.audio,
+                    globals: &mut self.globals,
                 });
                 self.states.push(state);
                 self.timer = Instant::now();
@@ -296,6 +345,7 @@ impl GameInstance {
                     state_change: &mut self.state_change,
                     assets: &mut self.assets,
                     audio: &mut self.audio,
+                    globals: &mut self.globals,
                 });
                 self.states.push(state);
                 self.timer = Instant::now();
@@ -310,6 +360,7 @@ impl GameInstance {
                         state_change: &mut self.state_change,
                         assets: &mut self.assets,
                         audio: &mut self.audio,
+                        globals: &mut self.globals,
                     });
                 }
                 self.timer = Instant::now();
